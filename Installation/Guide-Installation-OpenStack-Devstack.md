@@ -80,7 +80,7 @@ ___
 
 Une fois l’installation terminée :
 
-- URL : **http://10.0.2.15/dashboard**
+- URL : **http://[HOST_IP]/dashboard**
 
 Les Identifiants :
 Identifiants :
