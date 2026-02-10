@@ -12,7 +12,7 @@ Projet de Software defined network avec OpenStack Neutron
 Le guide détaillé d’installation d’OpenStack (DevStack + Neutron) est disponible ici :
 
 📄 **Guide d’installation**  
-👉 [`installation/guide-installation-openstack-devstack.md`](installation/guide-installation-openstack-devstack.md)
+👉 [`installation/guide-installation-openstack-devstack.md`](Installation/Guide-Installation-OpenStack-Devstack.md)
 
 Ce guide couvre :
 - La préparation du système
