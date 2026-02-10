@@ -7,4 +7,14 @@ Projet de Software defined network avec OpenStack Neutron
 
 • Développer une interface graphique pour la gestion simplifiée des réseaux virtuels et des règles de sécurité
 
-# NB: README à mettre à jour progressivement par l'équipe.
+## 🚀 Installation
+
+Le guide détaillé d’installation d’OpenStack (DevStack + Neutron) est disponible ici :
+
+📄 **Guide d’installation**  
+👉 [`installation/guide-installation-openstack-devstack.md`](installation/guide-installation-openstack-devstack.md)
+
+Ce guide couvre :
+- La préparation du système
+- L’installation de DevStack
+- La configuration de Neutron pour le SDN
