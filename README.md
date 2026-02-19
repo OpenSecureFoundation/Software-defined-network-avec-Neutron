@@ -236,7 +236,11 @@ Puis :
 
 ---
 
-# 🏗️ Schéma d'architecture logique du projet
+
+# 🏗️ Schéma d’architecture logique (3 Tenants – Isolation VXLAN)
+
+
+```text
                            +----------------------+
                            |     External Net     |
                            | (Provider Network)   |
@@ -258,9 +262,6 @@ Puis :
    |  VM A1  |                     |  VM B1  |                     |  VM C1  |
    +---------+                     +---------+                     +---------+
 
-        
-          
-         
           ❌ Pas de communication inter-tenant (Isolation L2 via VXLAN)
 
 ___
