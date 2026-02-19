@@ -260,6 +260,8 @@ Puis :
 
           ❌ Pas de communication inter-tenant (Isolation L2 via VXLAN)
 
+
+
 ___
           
 # 📘 Licence
