@@ -258,9 +258,10 @@ Puis :
    |  VM A1  |                     |  VM B1  |                     |  VM C1  |
    +---------+                     +---------+                     +---------+
 
+        
+          
+         
           ❌ Pas de communication inter-tenant (Isolation L2 via VXLAN)
-
-
 
 ___
           
