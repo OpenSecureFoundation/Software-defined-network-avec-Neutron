@@ -51,7 +51,7 @@ Ce guide couvre :
 
 ---
 
-## 2️⃣ Utilisation
+## 2️⃣ Utilisation des scripts d'automatisation
 
 ### Rendre les scripts exécutables
 
@@ -154,7 +154,7 @@ chmod +x *.sh
 
 ---
 
-# 3️⃣ Application Flask (Interface Graphique)
+## 3️⃣ Application Flask (Interface Graphique)
 
 Application web simplifiée permettant à chaque projet de consulter ses ressources OpenStack.
 
