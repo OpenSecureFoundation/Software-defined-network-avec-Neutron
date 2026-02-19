@@ -51,9 +51,9 @@ Ce guide couvre :
 
 ---
 
-## 🚀 Utilisation
+## 2️⃣ Utilisation
 
-### 1️⃣ Rendre les scripts exécutables
+### Rendre les scripts exécutables
 
 ```bash
 cd scripts
@@ -62,7 +62,7 @@ chmod +x *.sh
 
 ---
 
-### 2️⃣ Création des projets et utilisateurs
+### Création des projets et utilisateurs
 
 ```bash
 ./setup_tenants.sh
@@ -88,7 +88,7 @@ chmod +x *.sh
 
 ---
 
-### 3️⃣ Configuration réseau d’un projet
+### Configuration réseau d’un projet
 
 ```bash
 ./create_tenant_network.sh <projet> <utilisateur> <mot_de_passe> <VNI> <sous_réseau>
@@ -110,7 +110,7 @@ chmod +x *.sh
 
 ---
 
-### 4️⃣ Déploiement d’une instance
+### Déploiement d’une instance
 
 ```bash
 ./launch_instance.sh <projet> <utilisateur> <mot_de_passe> <nom_instance>
@@ -130,7 +130,7 @@ chmod +x *.sh
 
 ---
 
-### 5️⃣ Test d’isolation inter-projets
+### Test d’isolation inter-projets
 
 ```bash
 ./test_isolation.sh
@@ -170,7 +170,7 @@ Application web simplifiée permettant à chaque projet de consulter ses ressour
 
 ## ⚙️ Installation
 
-### 1️⃣ Installer les dépendances
+### Installer les dépendances
 
 ```bash
 cd flask_app
@@ -179,7 +179,7 @@ pip install -r requirements.txt
 
 ---
 
-### 2️⃣ Lancer l’application
+### Lancer l’application
 
 ```bash
 python app.py
