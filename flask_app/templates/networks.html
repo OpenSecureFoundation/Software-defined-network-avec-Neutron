@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Réseaux{% endblock %}
+{% block page_title %}<i class="bi bi-hdd-network me-2"></i>Réseaux virtuels{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0">
+    {{ networks|length }} réseau(x) — projet <strong>{{ session.project }}</strong>
+  </p>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreateNet">
+    <i class="bi bi-plus-lg me-2"></i>Nouveau réseau
+  </button>
+</div>
+
+{% if not networks %}
+<div class="card text-center py-5">
+  <i class="bi bi-hdd-network fs-1 text-muted mb-3 d-block"></i>
+  <p class="text-muted">Aucun réseau trouvé.</p>
+  <button class="btn btn-primary mx-auto"
+          data-bs-toggle="modal" data-bs-target="#modalCreateNet">
+    <i class="bi bi-plus-lg me-2"></i>Créer un réseau
+  </button>
+</div>
+{% else %}
+<div class="row g-3">
+{% for item in networks %}
+{% set net = item.network %}
+<div class="col-md-6 col-xl-4">
+  <div class="card h-100">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <h6 class="fw-bold mb-1">{{ net.name }}</h6>
+          <small class="text-muted font-monospace">{{ net.id[:12] }}…</small>
+        </div>
+        <span class="badge {{ 'bg-success' if net.is_admin_state_up else 'bg-danger' }}">
+          {{ 'UP' if net.is_admin_state_up else 'DOWN' }}
+        </span>
+      </div>
+      <div class="mb-3">
+        {% for subnet in item.subnets %}
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-diagram-2 text-primary" style="font-size:.85rem"></i>
+          <span style="font-size:.82rem">{{ subnet.cidr }}</span>
+          <span class="badge bg-secondary bg-opacity-30 text-muted"
+                style="font-size:.7rem">{{ subnet.name }}</span>
+        </div>
+        {% else %}
+        <span class="text-muted small">Aucun sous-réseau</span>
+        {% endfor %}
+      </div>
+      {% if net.provider_network_type %}
+      <div class="mb-3">
+        <span class="badge" style="background:#1e3a5f;color:#60a5fa">
+          <i class="bi bi-layers me-1"></i>{{ net.provider_network_type|upper }}
+          {% if net.provider_segmentation_id %}· VNI {{ net.provider_segmentation_id }}{% endif %}
+        </span>
+      </div>
+      {% endif %}
+      <div class="d-flex gap-2 justify-content-end mt-2">
+        <button class="btn btn-sm btn-outline-primary"
+                onclick="showEditNetwork(
+                  '{{ net.id }}',
+                  '{{ net.name }}',
+                  '{{ item.subnets[0].id if item.subnets else '' }}',
+                  '{{ item.subnets[0].dns_nameservers|join(',') if item.subnets else '8.8.8.8,8.8.4.4' }}',
+                  {{ 'true' if net.is_admin_state_up else 'false' }}
+                )">
+          <i class="bi bi-pencil me-1"></i>Modifier
+        </button>
+        <button class="btn btn-sm btn-outline-danger"
+                onclick="deleteNetwork('{{ net.id }}','{{ net.name }}')">
+          <i class="bi bi-trash me-1"></i>Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+<!-- Modal Créer réseau -->
+<div class="modal fade" id="modalCreateNet" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle me-2 text-primary"></i>Créer un réseau VXLAN
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {% if session.role == 'admin' %}
+        <div class="mb-3">
+          <label class="form-label">
+            Créer dans le projet
+            <span class="badge bg-warning bg-opacity-20 text-warning ms-1"
+                  style="font-size:.68rem">Admin</span>
+          </label>
+          <select id="net-target-project" class="form-select"
+                  onchange="onProjectChange()">
+            <option value="">— Projet courant (admin) —</option>
+          </select>
+        </div>
+        {% endif %}
+        <div class="mb-3">
+          <label class="form-label">Nom du réseau *</label>
+          <input type="text" id="net-name" class="form-control"
+                 placeholder="net-alice"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">CIDR *</label>
+          <input type="text" id="net-cidr" class="form-control"
+                 placeholder="10.1.0.0/24"/>
+        </div>
+        {% if session.role == 'admin' %}
+        <div class="mb-3">
+          <label class="form-label">VNI VXLAN
+            <span class="badge bg-warning bg-opacity-20 text-warning ms-1"
+                  style="font-size:.68rem">Admin</span>
+          </label>
+          <input type="number" id="net-vni" class="form-control"
+                 placeholder="1001"/>
+          <div class="form-text">Laissez vide pour attribution automatique.</div>
+        </div>
+        {% else %}
+        <input type="hidden" id="net-vni" value=""/>
+        {% endif %}
+        <div class="mb-3">
+          <label class="form-label">DNS</label>
+          <input type="text" id="net-dns" class="form-control"
+                 value="8.8.8.8,8.8.4.4"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="createNetwork()">
+          <i class="bi bi-check-lg me-1"></i>Créer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Modifier réseau -->
+<div class="modal fade" id="modalEditNet" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-pencil me-2 text-primary"></i>Modifier le réseau
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-net-id"/>
+        <input type="hidden" id="edit-subnet-id"/>
+        <div class="mb-3">
+          <label class="form-label">Nom du réseau</label>
+          <input type="text" id="edit-net-name" class="form-control"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Serveurs DNS</label>
+          <input type="text" id="edit-net-dns" class="form-control"/>
+          <div class="form-text">Séparés par des virgules.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">État administratif</label>
+          <select id="edit-net-state" class="form-select">
+            <option value="true">UP — Actif</option>
+            <option value="false">DOWN — Désactivé</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="saveNetwork()">
+          <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadProjects() {
+  const sel = document.getElementById('net-target-project');
+  if (!sel) return;
+  try {
+    const projects = await apiFetch('/api/projects');
+    projects.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name; opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+function onProjectChange() {
+  const project = document.getElementById('net-target-project')?.value;
+  const nameEl  = document.getElementById('net-name');
+  if (project) nameEl.placeholder = `net-${project.replace('-project','')}`;
+}
+
+async function createNetwork() {
+  const name           = document.getElementById('net-name').value.trim();
+  const cidr           = document.getElementById('net-cidr').value.trim();
+  const vni            = document.getElementById('net-vni')?.value.trim();
+  const dns            = document.getElementById('net-dns').value.trim();
+  const target_project = document.getElementById('net-target-project')?.value || '';
+  if (!name || !cidr) return showToast('Nom et CIDR obligatoires.', 'warning');
+  const res = await apiFetch('/networks/create', 'POST', {
+    name, cidr, vni: vni || null, dns,
+    target_project: target_project || null,
+  });
+  if (res.success) {
+    showToast(target_project
+      ? `Réseau créé dans <strong>${target_project}</strong>`
+      : 'Réseau créé !', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+function showEditNetwork(id, name, subnetId, dns, adminState) {
+  document.getElementById('edit-net-id').value    = id;
+  document.getElementById('edit-subnet-id').value = subnetId;
+  document.getElementById('edit-net-name').value  = name;
+  document.getElementById('edit-net-dns').value   = dns;
+  document.getElementById('edit-net-state').value = adminState ? 'true' : 'false';
+  new bootstrap.Modal(document.getElementById('modalEditNet')).show();
+}
+
+async function saveNetwork() {
+  const id       = document.getElementById('edit-net-id').value;
+  const subnetId = document.getElementById('edit-subnet-id').value;
+  const name     = document.getElementById('edit-net-name').value.trim();
+  const dns      = document.getElementById('edit-net-dns').value.trim();
+  const state    = document.getElementById('edit-net-state').value === 'true';
+  const res = await apiFetch(`/networks/${id}/update`, 'PUT', {
+    name, dns, subnet_id: subnetId, admin_state_up: state,
+  });
+  if (res.success) {
+    showToast('Réseau mis à jour.', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+async function deleteNetwork(id, name) {
+  if (!confirm(`Supprimer le réseau « ${name} » ?`)) return;
+  const res = await apiFetch(`/networks/${id}/delete`, 'DELETE');
+  if (res.success) {
+    showToast('Réseau supprimé.', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+loadProjects();
+</script>
+{% endblock %}

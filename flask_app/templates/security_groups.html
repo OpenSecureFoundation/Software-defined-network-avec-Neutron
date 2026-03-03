@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+{% block title %}Groupes de sécurité{% endblock %}
+{% block page_title %}
+  <i class="bi bi-shield-check me-2"></i>Groupes de sécurité
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0">
+    {{ security_groups|length }} groupe(s) — projet <strong>{{ session.project }}</strong>
+  </p>
+  <button class="btn btn-warning" data-bs-toggle="modal"
+          data-bs-target="#modalCreateSG">
+    <i class="bi bi-plus-lg me-2"></i>Nouveau groupe
+  </button>
+</div>
+
+{% for sg in security_groups %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center py-3">
+    <div>
+      <span class="fw-bold me-2">{{ sg.name }}</span>
+      <small class="text-muted font-monospace">{{ sg.id[:16] }}…</small>
+      {% if sg.description %}
+        <small class="text-muted ms-2">— {{ sg.description }}</small>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-primary"
+              onclick="showEditSG('{{ sg.id }}','{{ sg.name }}',
+                       '{{ sg.description or '' }}')">
+        <i class="bi bi-pencil me-1"></i>Modifier
+      </button>
+      <button class="btn btn-sm btn-outline-success"
+              onclick="showAddRule('{{ sg.id }}')">
+        <i class="bi bi-plus me-1"></i>Règle
+      </button>
+      {% if sg.name != 'default' %}
+      <button class="btn btn-sm btn-outline-danger"
+              onclick="deleteSG('{{ sg.id }}','{{ sg.name }}')">
+        <i class="bi bi-trash"></i>
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body p-0">
+    {% if sg.security_group_rules %}
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr>
+            <th>Direction</th><th>Protocole</th>
+            <th>Ports</th><th>IP source</th><th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for rule in sg.security_group_rules %}
+        <tr>
+          <td>
+            <span class="badge
+              {{ 'bg-primary bg-opacity-20 text-primary'
+                 if rule.direction == 'ingress'
+                 else 'bg-warning bg-opacity-20 text-warning' }}">
+              {{ rule.direction }}
+            </span>
+          </td>
+          <td>{{ rule.protocol or 'any' }}</td>
+          <td>
+            {% if rule.port_range_min and rule.port_range_max %}
+              {{ rule.port_range_min }}–{{ rule.port_range_max }}
+            {% else %}—{% endif %}
+          </td>
+          <td><code>{{ rule.remote_ip_prefix or 'all' }}</code></td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-danger"
+                    onclick="deleteRule('{{ rule.id }}')"
+                    title="Supprimer cette règle">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted text-center py-3 mb-0 small">Aucune règle.</p>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="card text-center py-5">
+  <i class="bi bi-shield-x fs-1 text-muted mb-3 d-block"></i>
+  <p class="text-muted">Aucun groupe de sécurité trouvé.</p>
+</div>
+{% endfor %}
+
+<!-- Modal Créer SG -->
+<div class="modal fade" id="modalCreateSG" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-shield-plus me-2 text-warning"></i>Nouveau groupe
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {% if session.role == 'admin' %}
+        <div class="mb-3">
+          <label class="form-label">
+            Créer dans le projet
+            <span class="badge bg-warning bg-opacity-20 text-warning ms-1"
+                  style="font-size:.68rem">Admin</span>
+          </label>
+          <select id="sg-target-project" class="form-select">
+            <option value="">— Projet courant (admin) —</option>
+          </select>
+        </div>
+        {% endif %}
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Nom *</label>
+            <input type="text" id="sg-name" class="form-control"
+                   placeholder="sg-alice"/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Description</label>
+            <input type="text" id="sg-desc" class="form-control"
+                   placeholder="Trafic HTTP/SSH"/>
+          </div>
+        </div>
+        <hr style="border-color:#334155"/>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="form-label mb-0">Règles</label>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-secondary"
+                    onclick="addPreset('ssh')">SSH</button>
+            <button class="btn btn-sm btn-outline-secondary"
+                    onclick="addPreset('http')">HTTP</button>
+            <button class="btn btn-sm btn-outline-secondary"
+                    onclick="addPreset('https')">HTTPS</button>
+            <button class="btn btn-sm btn-outline-secondary"
+                    onclick="addPreset('icmp')">ICMP</button>
+          </div>
+        </div>
+        <div id="rules-container"></div>
+        <button class="btn btn-outline-primary btn-sm mt-2" onclick="addRule()">
+          <i class="bi bi-plus me-1"></i>Règle personnalisée
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-warning" onclick="createSG()">
+          <i class="bi bi-check-lg me-1"></i>Créer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Modifier SG -->
+<div class="modal fade" id="modalEditSG" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-pencil me-2 text-primary"></i>Modifier le groupe
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-sg-id"/>
+        <div class="mb-3">
+          <label class="form-label">Nom</label>
+          <input type="text" id="edit-sg-name" class="form-control"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <input type="text" id="edit-sg-desc" class="form-control"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="saveSG()">
+          <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ajouter règle -->
+<div class="modal fade" id="modalAddRule" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle me-2 text-primary"></i>Ajouter une règle
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="rule-sg-id"/>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Direction</label>
+            <select id="rule-dir" class="form-select">
+              <option value="ingress">Ingress (entrant)</option>
+              <option value="egress">Egress (sortant)</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Protocole</label>
+            <select id="rule-proto" class="form-select">
+              <option>tcp</option><option>udp</option><option>icmp</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Port min</label>
+            <input type="number" id="rule-pmin" class="form-control"
+                   placeholder="80"/>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Port max</label>
+            <input type="number" id="rule-pmax" class="form-control"
+                   placeholder="80"/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">IP source</label>
+            <input type="text" id="rule-ip" class="form-control"
+                   value="0.0.0.0/0"/>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="submitAddRule()">
+          <i class="bi bi-check-lg me-1"></i>Ajouter
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let ruleIdx = 0;
+const presets = {
+  ssh   : { direction:'ingress', protocol:'tcp',  port_min:22,   port_max:22   },
+  http  : { direction:'ingress', protocol:'tcp',  port_min:80,   port_max:80   },
+  https : { direction:'ingress', protocol:'tcp',  port_min:443,  port_max:443  },
+  icmp  : { direction:'ingress', protocol:'icmp', port_min:null, port_max:null },
+};
+
+async function loadProjects() {
+  const sel = document.getElementById('sg-target-project');
+  if (!sel) return;
+  try {
+    const projects = await apiFetch('/api/projects');
+    projects.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name; opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+function addPreset(name) {
+  const p = presets[name];
+  addRuleRow(p.direction, p.protocol, p.port_min, p.port_max);
+}
+function addRule() { addRuleRow('ingress', 'tcp', '', ''); }
+function addRuleRow(dir, proto, pmin, pmax) {
+  const i = ruleIdx++;
+  const c = document.getElementById('rules-container');
+  const d = document.createElement('div');
+  d.className = 'd-flex gap-2 mb-2 align-items-center flex-wrap';
+  d.id = `rule-${i}`;
+  d.innerHTML = `
+    <select class="form-select form-select-sm w-auto"
+            data-ri="${i}" data-f="direction">
+      <option ${dir==='ingress'?'selected':''}>ingress</option>
+      <option ${dir==='egress'?'selected':''}>egress</option>
+    </select>
+    <select class="form-select form-select-sm w-auto"
+            data-ri="${i}" data-f="protocol">
+      <option ${proto==='tcp'?'selected':''}>tcp</option>
+      <option ${proto==='udp'?'selected':''}>udp</option>
+      <option ${proto==='icmp'?'selected':''}>icmp</option>
+    </select>
+    <input type="number" class="form-control form-control-sm" style="width:80px"
+           placeholder="p.min" data-ri="${i}" data-f="port_min"
+           value="${pmin??''}"/>
+    <input type="number" class="form-control form-control-sm" style="width:80px"
+           placeholder="p.max" data-ri="${i}" data-f="port_max"
+           value="${pmax??''}"/>
+    <input type="text" class="form-control form-control-sm" style="width:130px"
+           placeholder="0.0.0.0/0" data-ri="${i}" data-f="remote_ip"
+           value="0.0.0.0/0"/>
+    <button class="btn btn-sm btn-outline-danger"
+            onclick="document.getElementById('rule-${i}').remove()">
+      <i class="bi bi-x"></i>
+    </button>`;
+  c.appendChild(d);
+}
+
+function getRules() {
+  const rules = [];
+  document.querySelectorAll('#rules-container > div').forEach(row => {
+    const r = {};
+    row.querySelectorAll('[data-f]').forEach(el => {
+      r[el.dataset.f] = el.value || null;
+    });
+    rules.push(r);
+  });
+  return rules;
+}
+
+async function createSG() {
+  const name           = document.getElementById('sg-name').value.trim();
+  const desc           = document.getElementById('sg-desc').value.trim();
+  const target_project = document.getElementById('sg-target-project')?.value || '';
+  if (!name) return showToast('Nom requis.', 'warning');
+  const res = await apiFetch('/security_groups/create', 'POST', {
+    name, description: desc, rules: getRules(),
+    target_project: target_project || null,
+  });
+  if (res.success) {
+    showToast(target_project
+      ? `Groupe créé dans <strong>${target_project}</strong>`
+      : 'Groupe créé !', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+function showEditSG(id, name, desc) {
+  document.getElementById('edit-sg-id').value   = id;
+  document.getElementById('edit-sg-name').value = name;
+  document.getElementById('edit-sg-desc').value = desc;
+  new bootstrap.Modal(document.getElementById('modalEditSG')).show();
+}
+
+async function saveSG() {
+  const id   = document.getElementById('edit-sg-id').value;
+  const name = document.getElementById('edit-sg-name').value.trim();
+  const desc = document.getElementById('edit-sg-desc').value.trim();
+  const res  = await apiFetch(`/security_groups/${id}/update`, 'PUT',
+                              { name, description: desc });
+  if (res.success) {
+    showToast('Groupe mis à jour.', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+function showAddRule(sgId) {
+  document.getElementById('rule-sg-id').value = sgId;
+  new bootstrap.Modal(document.getElementById('modalAddRule')).show();
+}
+
+async function submitAddRule() {
+  const sgId = document.getElementById('rule-sg-id').value;
+  const res  = await apiFetch(`/security_groups/${sgId}/rule`, 'POST', {
+    direction : document.getElementById('rule-dir').value,
+    protocol  : document.getElementById('rule-proto').value,
+    port_min  : document.getElementById('rule-pmin').value || null,
+    port_max  : document.getElementById('rule-pmax').value || null,
+    remote_ip : document.getElementById('rule-ip').value,
+  });
+  if (res.success) {
+    showToast('Règle ajoutée.', 'success');
+    location.reload();
+  } else showToast(res.error, 'danger');
+}
+
+async function deleteRule(ruleId) {
+  if (!confirm('Supprimer cette règle ?')) return;
+  const res = await apiFetch(`/security_groups/rules/${ruleId}/delete`, 'DELETE');
+  if (res.success) {
+    showToast('Règle supprimée.', 'success');
+    location.reload();
+  } else showToast(res.error, 'danger');
+}
+
+async function deleteSG(id, name) {
+  if (!confirm(`Supprimer « ${name} » ?`)) return;
+  const res = await apiFetch(`/security_groups/${id}/delete`, 'DELETE');
+  if (res.success) {
+    showToast('Groupe supprimé.', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+loadProjects();
+</script>
+{% endblock %}

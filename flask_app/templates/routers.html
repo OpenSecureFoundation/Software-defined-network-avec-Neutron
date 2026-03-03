@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% block title %}Routeurs{% endblock %}
+{% block page_title %}<i class="bi bi-router me-2"></i>Routeurs{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0">
+    {{ routers|length }} routeur(s) — projet <strong>{{ session.project }}</strong>
+  </p>
+  <button class="btn btn-warning" data-bs-toggle="modal"
+          data-bs-target="#modalCreateRouter">
+    <i class="bi bi-plus-lg me-2"></i>Nouveau routeur
+  </button>
+</div>
+
+{% if not routers %}
+<div class="card text-center py-5">
+  <i class="bi bi-router fs-1 text-muted mb-3 d-block"></i>
+  <p class="text-muted">Aucun routeur.</p>
+  <button class="btn btn-warning mx-auto"
+          data-bs-toggle="modal" data-bs-target="#modalCreateRouter">
+    <i class="bi bi-plus-lg me-2"></i>Créer un routeur
+  </button>
+</div>
+{% else %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Nom</th><th>Statut</th><th>Gateway</th>
+          <th>ID</th><th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for router in routers %}
+      <tr>
+        <td><div class="fw-bold">{{ router.name }}</div></td>
+        <td>
+          <span class="badge
+            {{ 'bg-success' if router.is_admin_state_up else 'bg-danger' }}">
+            {{ 'UP' if router.is_admin_state_up else 'DOWN' }}
+          </span>
+        </td>
+        <td>
+          {% if router.external_gateway_info %}
+            <span class="badge" style="background:#1e3a5f;color:#60a5fa">
+              <i class="bi bi-globe me-1"></i>
+              {{ router.external_gateway_info.get('network_id','')[:16] }}…
+            </span>
+          {% else %}
+            <span class="text-muted small">Aucune gateway</span>
+          {% endif %}
+        </td>
+        <td>
+          <small class="text-muted font-monospace">{{ router.id[:16] }}…</small>
+        </td>
+        <td class="text-end">
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary"
+                    onclick="showEditRouter(
+                      '{{ router.id }}',
+                      '{{ router.name }}',
+                      {{ 'true' if router.is_admin_state_up else 'false' }}
+                    )" title="Modifier">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-outline-danger"
+                    onclick="deleteRouter('{{ router.id }}','{{ router.name }}')"
+                    title="Supprimer">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal Créer routeur -->
+<div class="modal fade" id="modalCreateRouter" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle me-2 text-warning"></i>Créer un routeur
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {% if session.role == 'admin' %}
+        <div class="mb-3">
+          <label class="form-label">
+            Créer dans le projet
+            <span class="badge bg-warning bg-opacity-20 text-warning ms-1"
+                  style="font-size:.68rem">Admin</span>
+          </label>
+          <select id="router-target-project" class="form-select"
+                  onchange="loadProjectSubnets()">
+            <option value="">— Projet courant (admin) —</option>
+          </select>
+        </div>
+        {% endif %}
+        <div class="mb-3">
+          <label class="form-label">Nom *</label>
+          <input type="text" id="router-name" class="form-control"
+                 placeholder="router-alice"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Réseau externe</label>
+          <input type="text" id="router-extnet" class="form-control"
+                 value="public"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Sous-réseau à attacher</label>
+          <select id="router-subnet" class="form-select">
+            <option value="">— Aucun —</option>
+            {% for net in networks %}
+              {% for sid in net.subnet_ids %}
+                <option value="{{ sid }}">
+                  {{ net.name }} — {{ sid[:16] }}…
+                </option>
+              {% endfor %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-warning" onclick="createRouter()">
+          <i class="bi bi-check-lg me-1"></i>Créer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Modifier routeur -->
+<div class="modal fade" id="modalEditRouter" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-pencil me-2 text-warning"></i>Modifier le routeur
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-router-id"/>
+        <div class="mb-3">
+          <label class="form-label">Nom</label>
+          <input type="text" id="edit-router-name" class="form-control"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Gateway externe</label>
+          <input type="text" id="edit-router-gw" class="form-control"
+                 placeholder="public"/>
+          <div class="form-text">Laissez vide pour retirer la gateway.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">État administratif</label>
+          <select id="edit-router-state" class="form-select">
+            <option value="true">UP — Actif</option>
+            <option value="false">DOWN — Désactivé</option>
+          </select>
+        </div>
+        <hr style="border-color:#334155"/>
+        <div class="mb-3">
+          <label class="form-label">Ajouter un sous-réseau</label>
+          <select id="edit-router-add-subnet" class="form-select">
+            <option value="">— Aucun —</option>
+            {% for net in networks %}
+              {% for sid in net.subnet_ids %}
+                <option value="{{ sid }}">
+                  {{ net.name }} — {{ sid[:16] }}…
+                </option>
+              {% endfor %}
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Retirer un sous-réseau</label>
+          <select id="edit-router-rm-subnet" class="form-select">
+            <option value="">— Aucun —</option>
+            {% for net in networks %}
+              {% for sid in net.subnet_ids %}
+                <option value="{{ sid }}">
+                  {{ net.name }} — {{ sid[:16] }}…
+                </option>
+              {% endfor %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-warning" onclick="saveRouter()">
+          <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadProjects() {
+  const sel = document.getElementById('router-target-project');
+  if (!sel) return;
+  try {
+    const projects = await apiFetch('/api/projects');
+    projects.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name; opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+async function loadProjectSubnets() {
+  const project = document.getElementById('router-target-project')?.value;
+  const sel     = document.getElementById('router-subnet');
+  sel.innerHTML = '<option value="">— Chargement... —</option>';
+  if (!project) {
+    sel.innerHTML = '<option value="">— Aucun —</option>';
+    {% for net in networks %}{% for sid in net.subnet_ids %}
+    sel.innerHTML += `<option value="{{ sid }}">{{ net.name }} — {{ sid[:16] }}…</option>`;
+    {% endfor %}{% endfor %}
+    return;
+  }
+  try {
+    const nets = await apiFetch(`/api/networks/${project}`);
+    sel.innerHTML = '<option value="">— Aucun —</option>';
+    nets.forEach(n => n.subnets.forEach(s => {
+      sel.innerHTML += `<option value="${s.id}">${n.name} — ${s.id.substring(0,16)}…</option>`;
+    }));
+  } catch(e) { sel.innerHTML = '<option value="">Erreur</option>'; }
+}
+
+async function createRouter() {
+  const name           = document.getElementById('router-name').value.trim();
+  const ext            = document.getElementById('router-extnet').value.trim();
+  const subnet_id      = document.getElementById('router-subnet').value || null;
+  const target_project = document.getElementById('router-target-project')?.value || '';
+  if (!name) return showToast('Nom requis.', 'warning');
+  const res = await apiFetch('/routers/create', 'POST', {
+    name, external_network: ext, subnet_id,
+    target_project: target_project || null,
+  });
+  if (res.success) {
+    showToast(target_project
+      ? `Routeur créé dans <strong>${target_project}</strong>`
+      : 'Routeur créé !', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+function showEditRouter(id, name, adminState) {
+  document.getElementById('edit-router-id').value    = id;
+  document.getElementById('edit-router-name').value  = name;
+  document.getElementById('edit-router-state').value = adminState ? 'true' : 'false';
+  document.getElementById('edit-router-gw').value    = 'public';
+  new bootstrap.Modal(document.getElementById('modalEditRouter')).show();
+}
+
+async function saveRouter() {
+  const id        = document.getElementById('edit-router-id').value;
+  const name      = document.getElementById('edit-router-name').value.trim();
+  const gw        = document.getElementById('edit-router-gw').value.trim();
+  const state     = document.getElementById('edit-router-state').value === 'true';
+  const addSubnet = document.getElementById('edit-router-add-subnet').value || null;
+  const rmSubnet  = document.getElementById('edit-router-rm-subnet').value || null;
+  const res = await apiFetch(`/routers/${id}/update`, 'PUT', {
+    name, external_network: gw, admin_state_up: state,
+    add_subnet_id: addSubnet, remove_subnet_id: rmSubnet,
+  });
+  if (res.success) {
+    showToast('Routeur mis à jour.', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+async function deleteRouter(id, name) {
+  if (!confirm(`Supprimer le routeur « ${name} » ?`)) return;
+  const res = await apiFetch(`/routers/${id}/delete`, 'DELETE');
+  if (res.success) {
+    showToast('Routeur supprimé.', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+loadProjects();
+</script>
+{% endblock %}

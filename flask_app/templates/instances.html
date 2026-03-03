@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+{% block title %}Instances{% endblock %}
+{% block page_title %}<i class="bi bi-pc-display me-2"></i>Instances VM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0">
+    {{ instances|length }} instance(s) — projet <strong>{{ session.project }}</strong>
+  </p>
+  <button class="btn btn-success" data-bs-toggle="modal"
+          data-bs-target="#modalCreateVM">
+    <i class="bi bi-plus-lg me-2"></i>Nouvelle instance
+  </button>
+</div>
+
+{% if not instances %}
+<div class="card text-center py-5">
+  <i class="bi bi-pc-display fs-1 text-muted mb-3 d-block"></i>
+  <p class="text-muted">Aucune instance.</p>
+  <button class="btn btn-success mx-auto"
+          data-bs-toggle="modal" data-bs-target="#modalCreateVM">
+    <i class="bi bi-plus-lg me-2"></i>Créer une VM
+  </button>
+</div>
+{% else %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Nom</th><th>Statut</th><th>Réseau / IP</th>
+          <th>Image</th><th>Flavor</th><th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for inst in instances %}
+      <tr id="row-{{ inst.id }}">
+        <td>
+          <div class="fw-bold">{{ inst.name }}</div>
+          <small class="text-muted font-monospace">{{ inst.id[:12] }}…</small>
+        </td>
+        <td>
+          <span class="badge badge-{{ inst.status|lower }} px-2 py-1">
+            {{ inst.status }}
+          </span>
+        </td>
+        <td>
+          {% for net, addrs in (inst.addresses or {}).items() %}
+            {% for addr in addrs %}
+              <div>
+                <small class="text-muted">{{ net }}:</small>
+                <code>{{ addr.addr }}</code>
+              </div>
+            {% endfor %}
+          {% endfor %}
+        </td>
+        <td><small>{{ inst.image.id[:16] if inst.image else 'N/A' }}…</small></td>
+        <td><small>{{ inst.flavor.id[:16] if inst.flavor else 'N/A' }}…</small></td>
+        <td class="text-end">
+          <div class="btn-group btn-group-sm">
+            {% if inst.status == 'SHUTOFF' %}
+            <button class="btn btn-outline-success"
+                    onclick="vmAction('{{ inst.id }}','start')"
+                    title="Démarrer">
+              <i class="bi bi-play-fill"></i>
+            </button>
+            {% else %}
+            <button class="btn btn-outline-warning"
+                    onclick="vmAction('{{ inst.id }}','stop')"
+                    title="Arrêter">
+              <i class="bi bi-stop-fill"></i>
+            </button>
+            {% endif %}
+            <button class="btn btn-outline-info"
+                    onclick="vmAction('{{ inst.id }}','reboot')"
+                    title="Redémarrer">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button class="btn btn-outline-primary"
+                    onclick="showEditVM(
+                      '{{ inst.id }}',
+                      '{{ inst.name }}'
+                    )" title="Modifier">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-outline-secondary"
+                    onclick="showAttachNetwork('{{ inst.id }}')"
+                    title="Attacher réseau">
+              <i class="bi bi-hdd-network"></i>
+            </button>
+            <button class="btn btn-outline-secondary"
+                    onclick="vmAction('{{ inst.id }}','attach_floating_ip')"
+                    title="IP flottante">
+              <i class="bi bi-globe"></i>
+            </button>
+            <button class="btn btn-outline-danger"
+                    onclick="vmAction('{{ inst.id }}','delete')"
+                    title="Supprimer">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal Créer VM -->
+<div class="modal fade" id="modalCreateVM" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle me-2 text-success"></i>Déployer une instance
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          {% if session.role == 'admin' %}
+          <div class="col-12">
+            <label class="form-label">
+              Créer dans le projet
+              <span class="badge bg-warning bg-opacity-20 text-warning ms-1"
+                    style="font-size:.68rem">Admin</span>
+            </label>
+            <select id="vm-target-project" class="form-select"
+                    onchange="loadProjectNetworks()">
+              <option value="">— Projet courant (admin) —</option>
+            </select>
+          </div>
+          {% endif %}
+          <div class="col-md-6">
+            <label class="form-label">Nom *</label>
+            <input type="text" id="vm-name" class="form-control"
+                   placeholder="vm-alice-1"/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Image *</label>
+            <select id="vm-image" class="form-select">
+              {% for img in images %}
+              <option value="{{ img.id }}">{{ img.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Flavor *</label>
+            <select id="vm-flavor" class="form-select">
+              {% for f in flavors %}
+              <option value="{{ f.id }}">
+                {{ f.name }} ({{ f.vcpus }}vCPU / {{ f.ram }}MB)
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Réseau *</label>
+            <select id="vm-network" class="form-select">
+              {% for net in networks %}
+              <option value="{{ net.id }}">{{ net.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Clé SSH</label>
+            <select id="vm-keypair" class="form-select">
+              <option value="">— Aucune —</option>
+              {% for kp in keypairs %}
+              <option value="{{ kp.name }}">{{ kp.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Groupes de sécurité</label>
+            <select id="vm-sg" class="form-select" multiple>
+              {% for sg in security_groups %}
+              <option value="{{ sg.name }}"
+                {% if sg.name == 'default' %}selected{% endif %}>
+                {{ sg.name }}
+              </option>
+              {% endfor %}
+            </select>
+            <small class="text-muted">Ctrl+clic pour sélection multiple</small>
+          </div>
+          <div class="col-12">
+            <label class="form-label">User Data <span class="text-muted">(optionnel)</span></label>
+            <textarea id="vm-userdata" class="form-control font-monospace"
+                      rows="3" placeholder="#!/bin/bash"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-success" onclick="createInstance()">
+          <i class="bi bi-play-fill me-1"></i>Déployer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Modifier VM -->
+<div class="modal fade" id="modalEditVM" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-pencil me-2 text-primary"></i>Modifier l'instance
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-vm-id"/>
+        <div class="mb-3">
+          <label class="form-label">Nom de l'instance</label>
+          <input type="text" id="edit-vm-name" class="form-control"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Groupes de sécurité</label>
+          <select id="edit-vm-sg" class="form-select" multiple>
+            {% for sg in security_groups %}
+            <option value="{{ sg.name }}">{{ sg.name }}</option>
+            {% endfor %}
+          </select>
+          <small class="text-muted">Ctrl+clic pour sélection multiple</small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <input type="text" id="edit-vm-desc" class="form-control"
+                 placeholder="Description optionnelle"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="saveVM()">
+          <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Attacher réseau -->
+<div class="modal fade" id="modalAttachNet" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-hdd-network me-2 text-primary"></i>Attacher un réseau
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="attach-vm-id"/>
+        <label class="form-label">Réseau</label>
+        <select id="attach-network" class="form-select">
+          {% for net in networks %}
+          <option value="{{ net.id }}">{{ net.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary"
+                onclick="doAttachNetwork()">
+          <i class="bi bi-check-lg me-1"></i>Attacher
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadProjects() {
+  const sel = document.getElementById('vm-target-project');
+  if (!sel) return;
+  try {
+    const projects = await apiFetch('/api/projects');
+    projects.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name; opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+async function loadProjectNetworks() {
+  const project = document.getElementById('vm-target-project')?.value;
+  const sel     = document.getElementById('vm-network');
+  if (!project) {
+    sel.innerHTML = '';
+    {% for net in networks %}
+    sel.innerHTML += `<option value="{{ net.id }}">{{ net.name }}</option>`;
+    {% endfor %}
+    return;
+  }
+  sel.innerHTML = '<option>Chargement...</option>';
+  try {
+    const nets = await apiFetch(`/api/networks/${project}`);
+    sel.innerHTML = nets.length
+      ? nets.map(n => `<option value="${n.id}">${n.name}</option>`).join('')
+      : '<option value="">Aucun réseau</option>';
+  } catch(e) { sel.innerHTML = '<option value="">Erreur</option>'; }
+}
+
+async function createInstance() {
+  const name           = document.getElementById('vm-name').value.trim();
+  const image_id       = document.getElementById('vm-image').value;
+  const flavor_id      = document.getElementById('vm-flavor').value;
+  const network_id     = document.getElementById('vm-network').value;
+  const key_name       = document.getElementById('vm-keypair').value || null;
+  const user_data      = document.getElementById('vm-userdata').value;
+  const target_project = document.getElementById('vm-target-project')?.value || '';
+  const sg_sel         = document.getElementById('vm-sg');
+  const security_groups = [...sg_sel.selectedOptions].map(o => o.value);
+  if (!name || !network_id) return showToast('Nom et réseau requis.', 'warning');
+  const res = await apiFetch('/instances/create', 'POST', {
+    name, image_id, flavor_id, network_id,
+    key_name, security_groups, user_data,
+    target_project: target_project || null,
+  });
+  if (res.success) {
+    showToast(target_project
+      ? `Instance créée dans <strong>${target_project}</strong>`
+      : 'Instance en cours de création…', 'success');
+    setTimeout(() => location.reload(), 2000);
+  } else showToast(res.error, 'danger');
+}
+
+function showEditVM(id, name) {
+  document.getElementById('edit-vm-id').value   = id;
+  document.getElementById('edit-vm-name').value = name;
+  new bootstrap.Modal(document.getElementById('modalEditVM')).show();
+}
+
+async function saveVM() {
+  const id   = document.getElementById('edit-vm-id').value;
+  const name = document.getElementById('edit-vm-name').value.trim();
+  const desc = document.getElementById('edit-vm-desc').value.trim();
+  const sg_sel = document.getElementById('edit-vm-sg');
+  const security_groups = [...sg_sel.selectedOptions].map(o => o.value);
+  const res = await apiFetch(`/instances/${id}/update`, 'PUT', {
+    name, description: desc,
+    security_groups: security_groups.length ? security_groups : undefined,
+  });
+  if (res.success) {
+    showToast('Instance mise à jour.', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+async function vmAction(id, action) {
+  if (action === 'delete' && !confirm('Supprimer cette instance ?')) return;
+  const res = await apiFetch(`/instances/${id}/action`, 'POST', { action });
+  if (res.success) {
+    if (action === 'attach_floating_ip')
+      showToast(`IP flottante : <strong>${res.floating_ip}</strong>`, 'success');
+    else showToast('Action effectuée.', 'success');
+    setTimeout(() => location.reload(), 1500);
+  } else showToast(res.error, 'danger');
+}
+
+function showAttachNetwork(vmId) {
+  document.getElementById('attach-vm-id').value = vmId;
+  new bootstrap.Modal(document.getElementById('modalAttachNet')).show();
+}
+
+async function doAttachNetwork() {
+  const vmId  = document.getElementById('attach-vm-id').value;
+  const netId = document.getElementById('attach-network').value;
+  const res   = await apiFetch(`/instances/${vmId}/attach_network`, 'POST',
+                               { network_id: netId });
+  if (res.success) {
+    showToast('Interface réseau attachée.', 'success');
+    location.reload();
+  } else showToast(res.error, 'danger');
+}
+
+loadProjects();
+</script>
+{% endblock %}

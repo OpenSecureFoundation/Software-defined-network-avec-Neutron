@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% block title %}Utilisateurs{% endblock %}
+{% block page_title %}<i class="bi bi-people me-2"></i>Gestion des utilisateurs{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0">{{ users|length }} utilisateur(s)</p>
+  <button class="btn btn-primary" data-bs-toggle="modal"
+          data-bs-target="#modalCreateUser">
+    <i class="bi bi-person-plus me-2"></i>Nouvel utilisateur
+  </button>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Utilisateur</th><th>Statut</th>
+          <th>Projet</th><th>Rôle</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for user in users %}
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-primary d-flex align-items-center
+                        justify-content-center"
+                 style="width:32px;height:32px;font-size:.8rem;
+                        font-weight:700;flex-shrink:0">
+              {{ user.name[0]|upper }}
+            </div>
+            <div>
+              <div class="fw-bold">{{ user.name }}</div>
+              <small class="text-muted font-monospace">{{ user.id[:16] }}…</small>
+            </div>
+          </div>
+        </td>
+        <td>
+          {% if user.is_enabled %}
+            <span class="badge badge-active px-2 py-1">Actif</span>
+          {% else %}
+            <span class="badge badge-shutoff px-2 py-1">Désactivé</span>
+          {% endif %}
+        </td>
+        <td>
+          {% set user_project = projects|selectattr('name','equalto',
+             user.name ~ '-project')|first|default(none) %}
+          {% if user_project %}
+            <span class="badge" style="background:#1e3a5f;color:#60a5fa">
+              <i class="bi bi-building me-1"></i>{{ user_project.name }}
+            </span>
+          {% else %}
+            <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if user_project %}
+          <select class="form-select form-select-sm w-auto"
+                  onchange="updateRole('{{ user.id }}',
+                            '{{ user_project.id }}', this.value)"
+                  style="background:#0f172a;color:#f1f5f9;border-color:#334155">
+            {% for role in roles %}
+            <option value="{{ role.name }}">{{ role.name }}</option>
+            {% endfor %}
+          </select>
+          {% else %}
+            <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary"
+                    onclick="showEditUser(
+                      '{{ user.id }}',
+                      '{{ user.name }}',
+                      '{{ user.email or '' }}'
+                    )" title="Modifier">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-outline-warning"
+                    onclick="toggleUser('{{ user.id }}')"
+                    title="{{ 'Désactiver' if user.is_enabled else 'Activer' }}">
+              <i class="bi bi-{{ 'pause' if user.is_enabled else 'play' }}-fill"></i>
+            </button>
+            {% if user.name != 'admin' %}
+            <button class="btn btn-outline-danger"
+                    onclick="deleteUser('{{ user.id }}','{{ user.name }}')"
+                    title="Supprimer">
+              <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Créer utilisateur -->
+<div class="modal fade" id="modalCreateUser" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-person-plus me-2 text-primary"></i>Créer un utilisateur
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Nom d'utilisateur *</label>
+          <input type="text" id="new-username" class="form-control"
+                 placeholder="alice"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Mot de passe *</label>
+          <div class="input-group">
+            <input type="password" id="new-password" class="form-control"
+                   placeholder="••••••••"/>
+            <button type="button" class="input-group-text"
+                    onclick="toggleNewPwd()" style="cursor:pointer">
+              <i class="bi bi-eye" id="new-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Nom du projet</label>
+          <input type="text" id="new-project" class="form-control"
+                 placeholder="alice-project"/>
+          <div class="form-text">Laissez vide → généré automatiquement.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Rôle</label>
+          <select id="new-role" class="form-select"
+                  onchange="updateRoleInfo()">
+            <option value="member">member — accès limité</option>
+            <option value="admin">admin — accès total</option>
+          </select>
+        </div>
+        <div id="role-info" class="alert alert-info py-2 mb-0"
+             style="font-size:.82rem">
+          <i class="bi bi-info-circle me-2"></i>
+          <span id="role-info-text">
+            Peut créer réseaux, VMs et SGs dans son projet uniquement.
+          </span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="createUser()">
+          <i class="bi bi-check-lg me-1"></i>Créer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Modifier utilisateur -->
+<div class="modal fade" id="modalEditUser" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-pencil me-2 text-primary"></i>Modifier l'utilisateur
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-user-id"/>
+        <div class="mb-3">
+          <label class="form-label">Nom d'utilisateur</label>
+          <input type="text" id="edit-username" class="form-control"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Nouveau mot de passe</label>
+          <div class="input-group">
+            <input type="password" id="edit-password" class="form-control"
+                   placeholder="Laissez vide pour ne pas changer"/>
+            <button type="button" class="input-group-text"
+                    onclick="toggleEditPwd()" style="cursor:pointer">
+              <i class="bi bi-eye" id="edit-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" id="edit-email" class="form-control"
+                 placeholder="alice@example.com"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="saveUser()">
+          <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateRoleInfo() {
+  const role = document.getElementById('new-role').value;
+  document.getElementById('role-info-text').textContent = role === 'admin'
+    ? "Accès total : VNI VXLAN, gestion de tous les projets, création d'utilisateurs."
+    : "Peut créer réseaux, VMs et SGs dans son projet uniquement.";
+}
+
+function toggleNewPwd() {
+  const p = document.getElementById('new-password');
+  const i = document.getElementById('new-eye');
+  p.type = p.type === 'password' ? 'text' : 'password';
+  i.className = p.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+
+function toggleEditPwd() {
+  const p = document.getElementById('edit-password');
+  const i = document.getElementById('edit-eye');
+  p.type = p.type === 'password' ? 'text' : 'password';
+  i.className = p.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+
+async function createUser() {
+  const username = document.getElementById('new-username').value.trim();
+  const password = document.getElementById('new-password').value;
+  const project  = document.getElementById('new-project').value.trim();
+  const role     = document.getElementById('new-role').value;
+  if (!username || !password)
+    return showToast('Nom et mot de passe requis.', 'warning');
+  const res = await apiFetch('/users/create', 'POST', {
+    username, password,
+    project: project || `${username}-project`,
+    role,
+  });
+  if (res.success) {
+    showToast(
+      `Utilisateur <strong>${res.username}</strong> créé — ` +
+      `projet : ${res.project} — rôle : ${res.role}`, 'success');
+    setTimeout(() => location.reload(), 1800);
+  } else showToast(res.error, 'danger');
+}
+
+function showEditUser(id, name, email) {
+  document.getElementById('edit-user-id').value  = id;
+  document.getElementById('edit-username').value = name;
+  document.getElementById('edit-email').value    = email;
+  document.getElementById('edit-password').value = '';
+  new bootstrap.Modal(document.getElementById('modalEditUser')).show();
+}
+
+async function saveUser() {
+  const id       = document.getElementById('edit-user-id').value;
+  const username = document.getElementById('edit-username').value.trim();
+  const password = document.getElementById('edit-password').value;
+  const email    = document.getElementById('edit-email').value.trim();
+  const payload  = {};
+  if (username) payload.username = username;
+  if (password) payload.password = password;
+  if (email)    payload.email    = email;
+  const res = await apiFetch(`/users/${id}/update`, 'PUT', payload);
+  if (res.success) {
+    showToast('Utilisateur mis à jour.', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+async function updateRole(userId, projectId, newRole) {
+  const res = await apiFetch(`/users/${userId}/role`, 'POST',
+                             { project_id: projectId, role: newRole });
+  if (res.success) showToast('Rôle mis à jour.', 'success');
+  else             showToast(res.error, 'danger');
+}
+
+async function toggleUser(userId) {
+  const res = await apiFetch(`/users/${userId}/toggle`, 'POST');
+  if (res.success) {
+    showToast(`Utilisateur ${res.enabled ? 'activé' : 'désactivé'}.`, 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+
+async function deleteUser(userId, username) {
+  if (!confirm(`Supprimer l'utilisateur « ${username} » ?`)) return;
+  const res = await apiFetch(`/users/${userId}/delete`, 'DELETE');
+  if (res.success) {
+    showToast('Utilisateur supprimé.', 'success');
+    setTimeout(() => location.reload(), 1200);
+  } else showToast(res.error, 'danger');
+}
+</script>
+{% endblock %}
