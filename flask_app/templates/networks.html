@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Réseaux{% endblock %}
+{% block header %}Réseaux{% endblock %}
+{% block content %}
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>ID</th>
+                <th>Statut</th>
+                <th>Sous-réseaux</th>
+                <th>Partagé</th>
+                <th>Externe</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for net in networks %}
+            <tr>
+                <td>{{ net.name }}</td>
+                <td><code>{{ net.id[:8] }}...</code></td>
+                <td>{{ net.status }}</td>
+                <td>{{ net.subnets | join(', ') }}</td>
+                <td>{{ net.shared }}</td>
+                <td>{{ net.external }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

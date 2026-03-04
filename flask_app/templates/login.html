@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Connexion{% endblock %}
+{% block header %}Connexion{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="project" class="form-label">Projet</label>
+                        <select class="form-select" id="project" name="project" required>
+                            <option value="admin">admin</option>
+                            <option value="client_a">client_a</option>
+                            <option value="client_b">client_b</option>
+                            <option value="client_c">client_c</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Mot de passe</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Se connecter</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

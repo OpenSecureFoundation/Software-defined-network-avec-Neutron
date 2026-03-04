@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Groupes de sécurité{% endblock %}
+{% block header %}Groupes de sécurité{% endblock %}
+{% block content %}
+<div class="accordion" id="secGroupsAccordion">
+    {% for sg in security_groups %}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="heading{{ loop.index }}">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+                {{ sg.name }} - {{ sg.description }}
+            </button>
+        </h2>
+        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#secGroupsAccordion">
+            <div class="accordion-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Direction</th>
+                            <th>Protocole</th>
+                            <th>Ports</th>
+                            <th>IP distante</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rule in sg.rules %}
+                        <tr>
+                            <td>{{ rule.direction }}</td>
+                            <td>{{ rule.protocol or 'any' }}</td>
+                            <td>{{ rule.port_range }}</td>
+                            <td>{{ rule.remote_ip }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
