@@ -108,7 +108,7 @@ def login():
         except Exception as e:
             logger.error(f"Erreur login : {e}")
             flash('Identifiants incorrects ou service indisponible.', 'danger')
-    return render_template('login.html', auth_url=auth_url)
+    return render_template('login.html', auth_url=os.getenv('OPENSTACK_AUTH_URL', 'http://localhost/identity'))
 
 @app.route('/logout')
 def logout():
