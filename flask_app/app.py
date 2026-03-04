@@ -5,9 +5,11 @@ OpenSecureFoundation
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
 import openstack, os, logging
+from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'sdn-openstack-secret-2024')
@@ -19,7 +21,7 @@ def get_connection():
         return None
     try:
         return openstack.connect(
-            auth_url            = session.get('auth_url', 'http://localhost/identity'),
+            auth_url            = os.getenv('OPENSTACK_AUTH_URL', 'http://localhost/identity'),
             project_name        = session['project'],
             username            = session['username'],
             password            = session['password'],
@@ -33,7 +35,7 @@ def get_connection():
 def get_connection_for_project(project_name):
     try:
         return openstack.connect(
-            auth_url            = session.get('auth_url', 'http://localhost/identity'),
+            auth_url            = os.getenv('OPENSTACK_AUTH_URL', 'http://localhost/identity'),
             project_name        = project_name,
             username            = session['username'],
             password            = session['password'],
@@ -69,7 +71,7 @@ def login():
     if 'username' in session:
         return redirect(url_for('dashboard'))
     if request.method == 'POST':
-        auth_url = request.form.get('auth_url', 'http://localhost/identity')
+        auth_url = os.getenv('OPENSTACK_AUTH_URL', 'http://localhost/identity')
         username = request.form.get('username')
         password = request.form.get('password')
         project  = request.form.get('project', 'admin')
@@ -106,7 +108,7 @@ def login():
         except Exception as e:
             logger.error(f"Erreur login : {e}")
             flash('Identifiants incorrects ou service indisponible.', 'danger')
-    return render_template('login.html')
+    return render_template('login.html', auth_url=auth_url)
 
 @app.route('/logout')
 def logout():

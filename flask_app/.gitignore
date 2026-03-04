@@ -1,0 +1,6 @@
+# Environnements virtuels
+venv/*
+
+# Fichiers sensibles
+.env
+
