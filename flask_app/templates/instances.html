@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Instances{% endblock %}
+{% block header %}Instances{% endblock %}
+{% block content %}
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>ID</th>
+                <th>Statut</th>
+                <th>Flavor</th>
+                <th>Image</th>
+                <th>Adresses IP</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inst in instances %}
+            <tr>
+                <td>{{ inst.name }}</td>
+                <td><code>{{ inst.id[:8] }}...</code></td>
+                <td>{{ inst.status }}</td>
+                <td>{{ inst.flavor }}</td>
+                <td>{{ inst.image[:8] if inst.image != 'N/A' else 'N/A' }}</td>
+                <td>
+                    {% for net, addrs in inst.addresses.items() %}
+                        {{ net }}: {{ addrs[0].addr }}<br>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

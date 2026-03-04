@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block header %}Dashboard{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-primary stat-card">
+            <div class="card-body">
+                <h5 class="card-title">Réseaux</h5>
+                <p class="card-text display-4">{{ stats.networks }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-success stat-card">
+            <div class="card-body">
+                <h5 class="card-title">Instances</h5>
+                <p class="card-text display-4">{{ stats.instances }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-warning stat-card">
+            <div class="card-body">
+                <h5 class="card-title">Groupes de sécurité</h5>
+                <p class="card-text display-4">{{ stats.security_groups }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-info stat-card">
+            <div class="card-body">
+                <h5 class="card-title">Routeurs</h5>
+                <p class="card-text display-4">{{ stats.routers }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

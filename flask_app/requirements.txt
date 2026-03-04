@@ -1,0 +1,4 @@
+flask
+flask-login
+openstacksdk
+python-dotenv
