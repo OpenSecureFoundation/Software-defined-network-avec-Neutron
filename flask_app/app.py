@@ -124,11 +124,25 @@ def dashboard():
                  security_groups=0, floating_ips=0)
     if conn:
         try:
-            stats['networks']        = sum(1 for _ in conn.network.networks())
-            stats['instances']       = sum(1 for _ in conn.compute.servers())
-            stats['routers']         = sum(1 for _ in conn.network.routers())
-            stats['security_groups'] = sum(1 for _ in conn.network.security_groups())
-            stats['floating_ips']    = sum(1 for _ in conn.network.ips())
+            if session.get('role') == 'admin':
+                # Admin voit tout
+                stats['instances'] = sum(
+                    1 for _ in conn.compute.servers(
+                        details=True, all_projects=True))
+                stats['networks'] = sum(
+                    1 for _ in conn.network.networks())
+                stats['routers'] = sum(
+                    1 for _ in conn.network.routers())
+                stats['security_groups'] = sum(
+                    1 for _ in conn.network.security_groups())
+                stats['floating_ips'] = sum(
+                    1 for _ in conn.network.ips())
+            else:
+                stats['networks']        = sum(1 for _ in conn.network.networks())
+                stats['instances']       = sum(1 for _ in conn.compute.servers())
+                stats['routers']         = sum(1 for _ in conn.network.routers())
+                stats['security_groups'] = sum(1 for _ in conn.network.security_groups())
+                stats['floating_ips']    = sum(1 for _ in conn.network.ips())
         except Exception as e:
             flash(f'Erreur statistiques : {e}', 'warning')
     return render_template('dashboard.html', stats=stats)
@@ -323,10 +337,16 @@ def delete_router(rid):
 @login_required
 def instances():
     conn = get_connection()
-    srv  = nets = flavors = images = kps = sgs = []
+    srv  = []
+    nets = flavors = images = kps = sgs = []
     if conn:
         try:
-            srv     = list(conn.compute.servers(details=True))
+            # Admin voit toutes les VMs de tous les projets
+            if session.get('role') == 'admin':
+                srv = list(conn.compute.servers(details=True, all_projects=True))
+            else:
+                srv = list(conn.compute.servers(details=True))
+
             nets    = list(conn.network.networks())
             flavors = list(conn.compute.flavors())
             images  = list(conn.compute.images())
@@ -337,35 +357,6 @@ def instances():
     return render_template('instances.html',
         instances=srv, networks=nets, flavors=flavors,
         images=images, keypairs=kps, security_groups=sgs)
-
-@app.route('/instances/create', methods=['POST'])
-@login_required
-def create_instance():
-    data           = request.get_json()
-    target_project = data.get('target_project')
-    if session.get('role') == 'admin' and target_project:
-        conn = get_connection_for_project(target_project)
-    else:
-        conn = get_connection()
-    if not conn:
-        return jsonify({'error': 'Non connecté'}), 401
-    try:
-        sg_names    = data.get('security_groups', ['default'])
-        server_args = {
-            'name'            : data['name'],
-            'image_id'        : data['image_id'],
-            'flavor_id'       : data['flavor_id'],
-            'networks'        : [{'uuid': data['network_id']}],
-            'security_groups' : [{'name': sg} for sg in sg_names],
-        }
-        if data.get('key_name'):
-            server_args['key_name'] = data['key_name']
-        if data.get('user_data', '').strip():
-            server_args['user_data'] = data['user_data']
-        server = conn.compute.create_server(**server_args)
-        return jsonify({'success': True, 'instance_id': server.id})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/instances/<iid>/update', methods=['PUT'])
 @login_required
@@ -739,36 +730,98 @@ def api_topology():
         return jsonify({'nodes': [], 'edges': []})
     try:
         nodes, edges = [], []
+
+        # Récupérer toutes les ressources
         nets    = list(conn.network.networks())
         routers = list(conn.network.routers())
-        servers = list(conn.compute.servers(details=True))
-        nodes.append({'id': 'ext-net', 'label': 'Internet',
-                      'type': 'external', 'color': '#6366f1', 'shape': 'triangle'})
+
+        # Admin voit les VMs de tous les projets
+        if session.get('role') == 'admin':
+            servers = list(conn.compute.servers(details=True, all_projects=True))
+        else:
+            servers = list(conn.compute.servers(details=True))
+
+        # Trouver le réseau externe (public)
+        ext_net = next(
+            (n for n in nets if n.get('router:external') or
+             n.name == 'public'), None
+        )
+        ext_net_id = ext_net.id if ext_net else None
+
+        # Nœud Internet
+        nodes.append({
+            'id'    : 'ext-net',
+            'label' : 'Internet',
+            'type'  : 'external',
+            'color' : '#6366f1',
+            'shape' : 'triangle',
+        })
+
+        # Nœuds réseaux
         for net in nets:
-            nodes.append({'id': f"net-{net.id}", 'label': net.name,
-                          'type': 'network', 'color': '#3b82f6', 'shape': 'box'})
+            # Ne pas afficher le réseau public comme nœud séparé
+            # il est représenté par le triangle Internet
+            if net.id == ext_net_id:
+                continue
+            nodes.append({
+                'id'    : f"net-{net.id}",
+                'label' : net.name,
+                'type'  : 'network',
+                'color' : '#3b82f6',
+                'shape' : 'box',
+            })
+
+        # Nœuds routeurs + liens
         for r in routers:
-            nodes.append({'id': f"router-{r.id}", 'label': r.name,
-                          'type': 'router', 'color': '#f59e0b', 'shape': 'diamond'})
+            nodes.append({
+                'id'    : f"router-{r.id}",
+                'label' : r.name,
+                'type'  : 'router',
+                'color' : '#f59e0b',
+                'shape' : 'diamond',
+            })
+
+            # Lien routeur → Internet si gateway externe définie
             if r.external_gateway_info:
-                eid = r.external_gateway_info.get('network_id')
-                edges.append({'from': f"router-{r.id}",
-                              'to': f"net-{eid}" if eid else 'ext-net'})
+                gw_net_id = r.external_gateway_info.get('network_id')
+                if gw_net_id == ext_net_id or gw_net_id:
+                    edges.append({
+                        'from' : f"router-{r.id}",
+                        'to'   : 'ext-net',
+                    })
+
+            # Liens routeur → réseaux internes via ses ports
             for port in conn.network.ports(device_id=r.id):
-                if port.network_id:
-                    edges.append({'from': f"router-{r.id}",
-                                  'to': f"net-{port.network_id}"})
+                if port.network_id and port.network_id != ext_net_id:
+                    edges.append({
+                        'from' : f"router-{r.id}",
+                        'to'   : f"net-{port.network_id}",
+                    })
+
+        # Nœuds VMs + liens vers leurs réseaux
         for s in servers:
             color = '#10b981' if s.status == 'ACTIVE' else '#ef4444'
-            nodes.append({'id': f"vm-{s.id}", 'label': s.name, 'type': 'vm',
-                          'color': color, 'shape': 'ellipse', 'status': s.status})
-            for net_name in (s.addresses or {}):
+            nodes.append({
+                'id'     : f"vm-{s.id}",
+                'label'  : s.name,
+                'type'   : 'vm',
+                'color'  : color,
+                'shape'  : 'ellipse',
+                'status' : s.status,
+            })
+            for net_name, addrs in (s.addresses or {}).items():
+                # Trouver le réseau correspondant par son nom
                 tgt = next((n for n in nets if n.name == net_name), None)
-                if tgt:
-                    edges.append({'from': f"vm-{s.id}",
-                                  'to': f"net-{tgt.id}"})
+                if tgt and tgt.id != ext_net_id:
+                    edges.append({
+                        'from' : f"vm-{s.id}",
+                        'to'   : f"net-{tgt.id}",
+                    })
+
         return jsonify({'nodes': nodes, 'edges': edges})
+
     except Exception as e:
+        logger.error(f"Erreur topologie : {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/subnets/<network_id>')

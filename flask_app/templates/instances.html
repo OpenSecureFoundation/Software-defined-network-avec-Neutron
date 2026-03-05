@@ -6,6 +6,12 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <p class="text-muted mb-0">
     {{ instances|length }} instance(s) — projet <strong>{{ session.project }}</strong>
+    {% if session.role == 'admin' %}
+    <span class="badge bg-warning bg-opacity-20 text-warning ms-2"
+          style="font-size:.72rem">
+      <i class="bi bi-eye me-1"></i>Vue globale tous projets
+    </span>
+    {% endif %}
   </p>
   <button class="btn btn-success" data-bs-toggle="modal"
           data-bs-target="#modalCreateVM">
@@ -16,7 +22,7 @@
 {% if not instances %}
 <div class="card text-center py-5">
   <i class="bi bi-pc-display fs-1 text-muted mb-3 d-block"></i>
-  <p class="text-muted">Aucune instance.</p>
+  <p class="text-muted">Aucune instance trouvée.</p>
   <button class="btn btn-success mx-auto"
           data-bs-toggle="modal" data-bs-target="#modalCreateVM">
     <i class="bi bi-plus-lg me-2"></i>Créer une VM
@@ -28,8 +34,15 @@
     <table class="table table-hover mb-0">
       <thead>
         <tr>
-          <th>Nom</th><th>Statut</th><th>Réseau / IP</th>
-          <th>Image</th><th>Flavor</th><th class="text-end">Actions</th>
+          <th>Nom</th>
+          {% if session.role == 'admin' %}
+          <th>Projet</th>
+          {% endif %}
+          <th>Statut</th>
+          <th>Réseau / IP</th>
+          <th>Image</th>
+          <th>Flavor</th>
+          <th class="text-end">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -39,62 +52,91 @@
           <div class="fw-bold">{{ inst.name }}</div>
           <small class="text-muted font-monospace">{{ inst.id[:12] }}…</small>
         </td>
+
+        {% if session.role == 'admin' %}
+        <td>
+          <span class="badge"
+                style="background:#1e293b;color:#94a3b8;
+                       border:1px solid #334155;font-size:.72rem">
+            <i class="bi bi-building me-1"></i>
+            {{ inst.project_id[:8] if inst.project_id else '—' }}…
+          </span>
+        </td>
+        {% endif %}
+
         <td>
           <span class="badge badge-{{ inst.status|lower }} px-2 py-1">
             {{ inst.status }}
           </span>
         </td>
+
         <td>
           {% for net, addrs in (inst.addresses or {}).items() %}
             {% for addr in addrs %}
               <div>
                 <small class="text-muted">{{ net }}:</small>
-                <code>{{ addr.addr }}</code>
+                <code style="font-size:.8rem">{{ addr.addr }}</code>
               </div>
             {% endfor %}
+          {% else %}
+            <span class="text-muted small">—</span>
           {% endfor %}
         </td>
-        <td><small>{{ inst.image.id[:16] if inst.image else 'N/A' }}…</small></td>
-        <td><small>{{ inst.flavor.id[:16] if inst.flavor else 'N/A' }}…</small></td>
+
+        <td>
+          <small class="text-muted">
+            {{ inst.image.id[:16] if inst.image else 'N/A' }}…
+          </small>
+        </td>
+
+        <td>
+          <small class="text-muted">
+            {{ inst.flavor.id[:16] if inst.flavor else 'N/A' }}…
+          </small>
+        </td>
+
         <td class="text-end">
           <div class="btn-group btn-group-sm">
             {% if inst.status == 'SHUTOFF' %}
             <button class="btn btn-outline-success"
-                    onclick="vmAction('{{ inst.id }}','start')"
+                    onclick="vmAction('{{ inst.id }}', 'start')"
                     title="Démarrer">
               <i class="bi bi-play-fill"></i>
             </button>
             {% else %}
             <button class="btn btn-outline-warning"
-                    onclick="vmAction('{{ inst.id }}','stop')"
+                    onclick="vmAction('{{ inst.id }}', 'stop')"
                     title="Arrêter">
               <i class="bi bi-stop-fill"></i>
             </button>
             {% endif %}
+
             <button class="btn btn-outline-info"
-                    onclick="vmAction('{{ inst.id }}','reboot')"
+                    onclick="vmAction('{{ inst.id }}', 'reboot')"
                     title="Redémarrer">
               <i class="bi bi-arrow-clockwise"></i>
             </button>
+
             <button class="btn btn-outline-primary"
-                    onclick="showEditVM(
-                      '{{ inst.id }}',
-                      '{{ inst.name }}'
-                    )" title="Modifier">
+                    onclick="showEditVM('{{ inst.id }}', '{{ inst.name }}')"
+                    title="Modifier">
               <i class="bi bi-pencil"></i>
             </button>
+
             <button class="btn btn-outline-secondary"
                     onclick="showAttachNetwork('{{ inst.id }}')"
                     title="Attacher réseau">
               <i class="bi bi-hdd-network"></i>
             </button>
+
             <button class="btn btn-outline-secondary"
-                    onclick="vmAction('{{ inst.id }}','attach_floating_ip')"
+                    onclick="vmAction('{{ inst.id }}', 'attach_floating_ip')"
                     title="IP flottante">
               <i class="bi bi-globe"></i>
             </button>
+
             <button class="btn btn-outline-danger"
-                    onclick="vmAction('{{ inst.id }}','delete')"
+                    onclick="vmAction('{{ inst.id }}', 'delete')"
                     title="Supprimer">
               <i class="bi bi-trash"></i>
             </button>
@@ -108,7 +150,7 @@
 </div>
 {% endif %}
 
-<!-- Modal Créer VM -->
+<!-- ── Modal Créer VM ─────────────────────────────────────── -->
 <div class="modal fade" id="modalCreateVM" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -121,6 +163,7 @@
       </div>
       <div class="modal-body">
         <div class="row g-3">
+
           {% if session.role == 'admin' %}
           <div class="col-12">
             <label class="form-label">
@@ -134,11 +177,13 @@
             </select>
           </div>
           {% endif %}
+
           <div class="col-md-6">
-            <label class="form-label">Nom *</label>
+            <label class="form-label">Nom de l'instance *</label>
             <input type="text" id="vm-name" class="form-control"
                    placeholder="vm-alice-1"/>
           </div>
+
           <div class="col-md-6">
             <label class="form-label">Image *</label>
             <select id="vm-image" class="form-select">
@@ -147,6 +192,7 @@
               {% endfor %}
             </select>
           </div>
+
           <div class="col-md-6">
             <label class="form-label">Flavor *</label>
             <select id="vm-flavor" class="form-select">
@@ -157,6 +203,7 @@
               {% endfor %}
             </select>
           </div>
+
           <div class="col-md-6">
             <label class="form-label">Réseau *</label>
             <select id="vm-network" class="form-select">
@@ -165,6 +212,7 @@
               {% endfor %}
             </select>
           </div>
+
           <div class="col-md-6">
             <label class="form-label">Clé SSH</label>
             <select id="vm-keypair" class="form-select">
@@ -174,6 +222,7 @@
               {% endfor %}
             </select>
           </div>
+
           <div class="col-md-6">
             <label class="form-label">Groupes de sécurité</label>
             <select id="vm-sg" class="form-select" multiple>
@@ -186,11 +235,17 @@
             </select>
             <small class="text-muted">Ctrl+clic pour sélection multiple</small>
           </div>
+
           <div class="col-12">
-            <label class="form-label">User Data <span class="text-muted">(optionnel)</span></label>
+            <label class="form-label">
+              User Data
+              <span class="text-muted small">(cloud-init, optionnel)</span>
+            </label>
             <textarea id="vm-userdata" class="form-control font-monospace"
-                      rows="3" placeholder="#!/bin/bash"></textarea>
+                      rows="3"
+                      placeholder="#!/bin/bash&#10;apt-get update"></textarea>
           </div>
+
         </div>
       </div>
       <div class="modal-footer">
@@ -204,7 +259,7 @@
   </div>
 </div>
 
-<!-- Modal Modifier VM -->
+<!-- ── Modal Modifier VM ──────────────────────────────────── -->
 <div class="modal fade" id="modalEditVM" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -217,10 +272,12 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="edit-vm-id"/>
+
         <div class="mb-3">
           <label class="form-label">Nom de l'instance</label>
           <input type="text" id="edit-vm-name" class="form-control"/>
         </div>
+
         <div class="mb-3">
           <label class="form-label">Groupes de sécurité</label>
           <select id="edit-vm-sg" class="form-select" multiple>
@@ -230,6 +287,7 @@
           </select>
           <small class="text-muted">Ctrl+clic pour sélection multiple</small>
         </div>
+
         <div class="mb-3">
           <label class="form-label">Description</label>
           <input type="text" id="edit-vm-desc" class="form-control"
@@ -247,7 +305,7 @@
   </div>
 </div>
 
-<!-- Modal Attacher réseau -->
+<!-- ── Modal Attacher réseau ──────────────────────────────── -->
 <div class="modal fade" id="modalAttachNet" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -260,7 +318,7 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="attach-vm-id"/>
-        <label class="form-label">Réseau</label>
+        <label class="form-label">Réseau à attacher</label>
         <select id="attach-network" class="form-select">
           {% for net in networks %}
           <option value="{{ net.id }}">{{ net.name }}</option>
@@ -278,42 +336,61 @@
     </div>
   </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
+
+// ── Chargement des projets (admin) ───────────────────────────
 async function loadProjects() {
   const sel = document.getElementById('vm-target-project');
   if (!sel) return;
   try {
     const projects = await apiFetch('/api/projects');
     projects.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.name; opt.textContent = p.name;
+      const opt       = document.createElement('option');
+      opt.value       = p.name;
+      opt.textContent = p.name;
       sel.appendChild(opt);
     });
-  } catch(e) {}
+  } catch(e) {
+    console.error('Erreur chargement projets :', e);
+  }
 }
 
+// ── Chargement des réseaux selon le projet sélectionné ───────
 async function loadProjectNetworks() {
   const project = document.getElementById('vm-target-project')?.value;
   const sel     = document.getElementById('vm-network');
+
   if (!project) {
+    // Revenir aux réseaux du projet admin
     sel.innerHTML = '';
     {% for net in networks %}
-    sel.innerHTML += `<option value="{{ net.id }}">{{ net.name }}</option>`;
+    sel.innerHTML +=
+      `<option value="{{ net.id }}">{{ net.name }}</option>`;
     {% endfor %}
     return;
   }
+
   sel.innerHTML = '<option>Chargement...</option>';
   try {
     const nets = await apiFetch(`/api/networks/${project}`);
-    sel.innerHTML = nets.length
-      ? nets.map(n => `<option value="${n.id}">${n.name}</option>`).join('')
-      : '<option value="">Aucun réseau</option>';
-  } catch(e) { sel.innerHTML = '<option value="">Erreur</option>'; }
+    if (nets.length) {
+      sel.innerHTML = nets
+        .map(n => `<option value="${n.id}">${n.name}</option>`)
+        .join('');
+    } else {
+      sel.innerHTML =
+        '<option value="">Aucun réseau dans ce projet</option>';
+    }
+  } catch(e) {
+    sel.innerHTML = '<option value="">Erreur chargement</option>';
+  }
 }
 
+// ── Créer une instance ───────────────────────────────────────
 async function createInstance() {
   const name           = document.getElementById('vm-name').value.trim();
   const image_id       = document.getElementById('vm-image').value;
@@ -321,72 +398,118 @@ async function createInstance() {
   const network_id     = document.getElementById('vm-network').value;
   const key_name       = document.getElementById('vm-keypair').value || null;
   const user_data      = document.getElementById('vm-userdata').value;
-  const target_project = document.getElementById('vm-target-project')?.value || '';
+  const target_project =
+    document.getElementById('vm-target-project')?.value || '';
   const sg_sel         = document.getElementById('vm-sg');
   const security_groups = [...sg_sel.selectedOptions].map(o => o.value);
-  if (!name || !network_id) return showToast('Nom et réseau requis.', 'warning');
+
+  if (!name)       return showToast('Nom de l\'instance requis.', 'warning');
+  if (!network_id) return showToast('Réseau requis.', 'warning');
+
   const res = await apiFetch('/instances/create', 'POST', {
-    name, image_id, flavor_id, network_id,
-    key_name, security_groups, user_data,
-    target_project: target_project || null,
+    name,
+    image_id,
+    flavor_id,
+    network_id,
+    key_name,
+    security_groups,
+    user_data,
+    target_project : target_project || null,
   });
+
   if (res.success) {
-    showToast(target_project
-      ? `Instance créée dans <strong>${target_project}</strong>`
-      : 'Instance en cours de création…', 'success');
+    showToast(
+      target_project
+        ? `Instance créée dans le projet <strong>${target_project}</strong>`
+        : 'Instance en cours de création…',
+      'success'
+    );
     setTimeout(() => location.reload(), 2000);
-  } else showToast(res.error, 'danger');
+  } else {
+    showToast(res.error, 'danger');
+  }
 }
 
+// ── Afficher la modale de modification ───────────────────────
 function showEditVM(id, name) {
   document.getElementById('edit-vm-id').value   = id;
   document.getElementById('edit-vm-name').value = name;
+  document.getElementById('edit-vm-desc').value = '';
+  // Désélectionner tous les SGs
+  [...document.getElementById('edit-vm-sg').options]
+    .forEach(o => o.selected = false);
   new bootstrap.Modal(document.getElementById('modalEditVM')).show();
 }
 
+// ── Sauvegarder les modifications d'une instance ─────────────
 async function saveVM() {
-  const id   = document.getElementById('edit-vm-id').value;
-  const name = document.getElementById('edit-vm-name').value.trim();
-  const desc = document.getElementById('edit-vm-desc').value.trim();
-  const sg_sel = document.getElementById('edit-vm-sg');
+  const id              = document.getElementById('edit-vm-id').value;
+  const name            = document.getElementById('edit-vm-name').value.trim();
+  const desc            = document.getElementById('edit-vm-desc').value.trim();
+  const sg_sel          = document.getElementById('edit-vm-sg');
   const security_groups = [...sg_sel.selectedOptions].map(o => o.value);
-  const res = await apiFetch(`/instances/${id}/update`, 'PUT', {
-    name, description: desc,
-    security_groups: security_groups.length ? security_groups : undefined,
-  });
+
+  const payload = {};
+  if (name) payload.name              = name;
+  if (desc) payload.description       = desc;
+  if (security_groups.length)
+        payload.security_groups       = security_groups;
+
+  const res = await apiFetch(`/instances/${id}/update`, 'PUT', payload);
   if (res.success) {
     showToast('Instance mise à jour.', 'success');
     setTimeout(() => location.reload(), 1200);
-  } else showToast(res.error, 'danger');
+  } else {
+    showToast(res.error, 'danger');
+  }
 }
 
+// ── Actions sur une instance ─────────────────────────────────
 async function vmAction(id, action) {
-  if (action === 'delete' && !confirm('Supprimer cette instance ?')) return;
+  if (action === 'delete' &&
+      !confirm('Supprimer cette instance définitivement ?')) return;
+
   const res = await apiFetch(`/instances/${id}/action`, 'POST', { action });
+
   if (res.success) {
-    if (action === 'attach_floating_ip')
-      showToast(`IP flottante : <strong>${res.floating_ip}</strong>`, 'success');
-    else showToast('Action effectuée.', 'success');
+    if (action === 'attach_floating_ip') {
+      showToast(
+        `IP flottante assignée : <strong>${res.floating_ip}</strong>`,
+        'success'
+      );
+    } else {
+      showToast('Action effectuée avec succès.', 'success');
+    }
     setTimeout(() => location.reload(), 1500);
-  } else showToast(res.error, 'danger');
+  } else {
+    showToast(res.error, 'danger');
+  }
 }
 
+// ── Afficher la modale d'attachement réseau ──────────────────
 function showAttachNetwork(vmId) {
   document.getElementById('attach-vm-id').value = vmId;
   new bootstrap.Modal(document.getElementById('modalAttachNet')).show();
 }
 
+// ── Attacher un réseau à une instance ───────────────────────
 async function doAttachNetwork() {
   const vmId  = document.getElementById('attach-vm-id').value;
   const netId = document.getElementById('attach-network').value;
-  const res   = await apiFetch(`/instances/${vmId}/attach_network`, 'POST',
-                               { network_id: netId });
+
+  const res = await apiFetch(
+    `/instances/${vmId}/attach_network`, 'POST', { network_id: netId }
+  );
+
   if (res.success) {
-    showToast('Interface réseau attachée.', 'success');
+    showToast('Interface réseau attachée avec succès.', 'success');
     location.reload();
-  } else showToast(res.error, 'danger');
+  } else {
+    showToast(res.error, 'danger');
+  }
 }
 
+// ── Init ─────────────────────────────────────────────────────
 loadProjects();
 </script>
 {% endblock %}
