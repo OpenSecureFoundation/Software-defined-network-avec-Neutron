@@ -12,29 +12,82 @@ ___
 
 ```
 .
-├── installation/                           # Guide d'installation OpenStack
-│   └── guide-installation-openstack-devstack.md
-├── scripts/                                 # Scripts Bash d’automatisation
-│   ├── setup_tenants.sh
-│   ├── create_tenant_network.sh
-│   ├── launch_instance.sh
-│   └── test_isolation.sh
-├── flask_app/                               # Application Flask (GUI)
-│   ├── app.py
-│   ├── requirements.txt
-│   └── templates/
-│       ├── base.html
-│       ├── login.html
-│       ├── dashboard.html
-│       ├── networks.html
-│       ├── instances.html
-│       └── security_groups.html
-└── README.md
+sdn-dashboard/
+│
+├── app.py                      # Application Flask principale
+├── requirements.txt            # Dépendances Python
+│
+├── templates/
+│   ├── base.html               # Layout principal (sidebar, navbar, thème sombre)
+│   ├── login.html              # Page de connexion (onglets Admin/Utilisateur)
+│   ├── dashboard.html          # Dashboard + topologie vis-network
+│   ├── networks.html           # Gestion réseaux VXLAN
+│   ├── routers.html            # Gestion routeurs L3
+│   ├── instances.html          # Gestion instances VM
+│   ├── security_groups.html    # Gestion groupes de sécurité
+│   └── users.html              # Gestion utilisateurs (admin uniquement)
+│
+└── scripts/
+    ├── setup_admin.sh          # Initialisation infrastructure
+    ├── cleanup.sh              # Nettoyage complet
+    └── test_isolation.sh       # Test isolation VXLAN
+```
+---
+
+# Architecture
+
+L’application agit comme une **couche d’orchestration** entre l’interface web et les services OpenStack.
+
+```
+Utilisateur
+    │
+    ▼
+Navigateur Web
+    │
+    ▼
+Application Flask (SDN Manager)
+    │
+    ├── Keystone  → Authentification
+    ├── Neutron   → Gestion des réseaux SDN
+    ├── Nova      → Gestion des machines virtuelles
+    └── Glance    → Gestion des images VM
 ```
 
-## 1️⃣ Installation
+Le backend Flask traduit les actions réalisées dans l’interface graphique en **appels API vers les services OpenStack**.
 
-Avant toute utilisation des scripts ou de l'interface graphique, une installation fonctionelle d'OpenStack est requise.
+L’infrastructure réseau repose sur **OpenStack Neutron**, qui permet de créer des **réseaux virtuels isolés entre différents tenants** grâce à la technologie **VXLAN**.
+
+---
+
+# Technologies utilisées
+
+| Composant             | Technologie |
+| --------------------- | ----------- |
+| Backend               | Python      |
+| Framework web         | Flask       |
+| Infrastructure cloud  | OpenStack   |
+| Virtualisation réseau | Neutron     |
+| Compute               | Nova        |
+| Authentification      | Keystone    |
+| Frontend              | Bootstrap   |
+
+---
+
+# Prérequis
+
+Avant d’exécuter l’application, les éléments suivants doivent être disponibles :
+
+* **Ubuntu 22.04 ou supérieur**
+* **Python 3.10+**
+* **OpenStack (DevStack)** installé et fonctionnel
+* Services OpenStack requis :
+
+  * Keystone
+  * Neutron
+  * Nova
+  * Glance
+
+Pour une installation fonctionelle d'OpenStack : 
 
 📄 **Guide d’installation**  
 👉 [`installation/guide-installation-openstack-devstack.md`](Installation/Guide-Installation-OpenStack-Devstack.md)
@@ -44,226 +97,137 @@ Ce guide couvre :
 - L’installation de DevStack
 - La configuration de Neutron pour le SDN
 
-  ## ✅ Prérequis
 
-* DevStack installé et opérationnel.
-* Exécution depuis la machine DevStack (ou accès API OpenStack configuré).
+# Installation
 
----
+### 1. Cloner le projet
 
-## 2️⃣ Utilisation des scripts d'automatisation
+```bash
+git clone https://github.com/OpenSecureFoundation/Software-defined-network-avec-Neutron.git
+cd Software-defined-network-avec-Neutron
+```
 
-### Rendre les scripts exécutables
+### 2. Installer les dépendances
+
+```bash
+pip install -r requirements.txt --break-system-packages
+```
+
+### 3. Initialiser l’environnement
 
 ```bash
 cd scripts
 chmod +x *.sh
+./setup_admin.sh
 ```
 
----
-
-### Création des projets et utilisateurs
+### 4. Lancer l’application
 
 ```bash
-./setup_tenants.sh
-```
-
-📌 Ce script :
-
-* Crée 3 projets :
-
-  * `client_a`
-  * `client_b`
-  * `client_c`
-* Crée leurs utilisateurs respectifs :
-
-  * `user_a`
-  * `user_b`
-  * `user_c`
-* Définit leurs mots de passe :
-
-  * `password_a`
-  * `password_b`
-  * `password_c`
-
----
-
-### Configuration réseau d’un projet
-
-```bash
-./create_tenant_network.sh <projet> <utilisateur> <mot_de_passe> <VNI> <sous_réseau>
-```
-
-**Exemple :**
-
-```bash
-./create_tenant_network.sh client_a user_a password_a 1001 10.1.0.0/24
-```
-
-📌 Ce script :
-
-* Crée un réseau privé **VXLAN**
-* Crée le sous-réseau associé
-* Déploie un routeur
-* Connecte le réseau au réseau externe
-* Configure un groupe de sécurité (SSH, ICMP, HTTP, trafic interne)
-
----
-
-### Déploiement d’une instance
-
-```bash
-./launch_instance.sh <projet> <utilisateur> <mot_de_passe> <nom_instance>
-```
-
-**Exemple :**
-
-```bash
-./launch_instance.sh client_a user_a password_a vm_a1
-```
-
-📌 Ce script :
-
-* Télécharge l’image Cirros si nécessaire
-* Déploie une instance
-* Assigne une IP flottante
-
----
-
-### Test d’isolation inter-projets
-
-```bash
-./test_isolation.sh
-```
-
-📌 Le script :
-
-* Tente un ping entre les instances de `client_a` et `client_b`
-* Vérifie que l’isolation réseau est effective
-
----
-
-## 🧾 Rôle des scripts
-
-| Script                     | Fonction                               |
-| -------------------------- | -------------------------------------- |
-| `setup_tenants.sh`         | Création des projets et utilisateurs   |
-| `create_tenant_network.sh` | Configuration complète du réseau       |
-| `launch_instance.sh`       | Déploiement d’une VM avec IP flottante |
-| `test_isolation.sh`        | Vérification de l’isolation            |
-
----
-
-## 3️⃣ Application Flask (Interface Graphique)
-
-Application web simplifiée permettant à chaque projet de consulter ses ressources OpenStack.
-
-## 🖥️ Fonctionnalités
-
-* 🔐 Authentification par projet
-* 📊 Dashboard avec indicateurs (réseaux, instances, routeurs, security groups)
-* 🌐 Visualisation des réseaux et sous-réseaux
-* 💻 Liste des instances avec IP
-* 🛡️ Gestion des groupes de sécurité
-
----
-
-## ⚙️ Installation
-
-### Installer les dépendances
-
-```bash
-cd flask_app
-pip install -r requirements.txt
-```
-
----
-
-### Lancer l’application
-
-```bash
+cd ~/sdn-dashboard
 python app.py
 ```
 
-Par défaut, l'application écoute sur **0.0.0.0:5001**.
-Accédez-y via **http://<IP_de_la_machine>:5001** (par exemple _http://192.168.56.1:5001_ si vous utilisez le réseau Host-Only).
+L’application sera accessible à l’adresse :
+
+```
+http://<IP-SERVEUR>:5001
+```
+---
+
+# Utilisation
+
+## Connexion administrateur
+
+1. Accéder à l’interface web
+2. Sélectionner **Administrateur**
+3. S’authentifier avec les identifiants OpenStack
+
+L’administrateur peut :
+
+* gérer les utilisateurs et projets
+* créer les réseaux virtuels
+* déployer les machines virtuelles
+* configurer les routeurs et groupes de sécurité
+
+## Connexion utilisateur
+
+Les utilisateurs standards peuvent :
+
+* consulter leurs ressources
+* créer des réseaux
+* lancer des machines virtuelles
+* gérer leurs groupes de sécurité
+
+Les actions disponibles dépendent du **rôle attribué par l’administrateur**.
 
 ---
 
-## 🏗️ Architecture de l’application
+# Scripts d’automatisation
 
-| Fichier            | Rôle                               |
-| ------------------ | ---------------------------------- |
-| `app.py`           | Routes Flask + connexion OpenStack |
-| `requirements.txt` | Dépendances Python                 |
-| `templates/`       | Templates HTML (Jinja2)            |
+Le projet inclut plusieurs scripts permettant de simplifier la gestion de l’environnement :
+
+| Script              | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| `setup_admin.sh`    | Initialise l’infrastructure OpenStack            |
+| `cleanup.sh`        | Supprime les ressources créées par l’application |
+| `create_user.sh`    | Crée un utilisateur OpenStack via CLI            |
+| `test_isolation.sh` | Vérifie l’isolation réseau entre tenants         |
+
 
 ---
 
-# 📋 Prérequis généraux
+# Workflows
 
-* Installation fonctionnelle de :
+## Workflow Administrateur
 
-  * Keystone
-  * Neutron
-  * Nova
-  * Glance
-* Python **3.8+**
-* Connectivité réseau vers la VM DevStack
+L’administrateur initialise l’infrastructure et gère les ressources des différents projets.
 
----
-
-# 🔬 Exemple de workflow complet
-
-```bash
-cd scripts
-./setup_tenants.sh
-
-./create_tenant_network.sh client_a user_a password_a 1001 10.1.0.0/24
-./create_tenant_network.sh client_b user_b password_b 1002 10.2.0.0/24
-./create_tenant_network.sh client_c user_c password_c 1003 10.3.0.0/24
-
-./launch_instance.sh client_a user_a password_a vm_a1
-./launch_instance.sh client_b user_b password_b vm_b1
-./launch_instance.sh client_c user_c password_c vm_c1
 ```
+1. Initialiser l’environnement
+   ./scripts/setup_admin.sh
 
-Puis :
+2. Créer les utilisateurs et projets
 
-```bash
-./test_isolation.sh
+3. Créer les réseaux virtuels VXLAN
+
+4. Configurer les routeurs
+
+5. Créer les groupes de sécurité
+
+6. Déployer les machines virtuelles
+
+7. Attacher des IP flottantes
+
+8. Vérifier l’isolation réseau entre tenants
+   ./scripts/test_isolation.sh
+
+9. Surveiller l’infrastructure via le Dashboard
 ```
 
 ---
 
+## Workflow Utilisateur
 
-# 🏗️ Schéma d’architecture logique (3 Tenants – Isolation VXLAN)
+Les utilisateurs gèrent les ressources de leur projet uniquement.
 
 ```
-                           +----------------------+
-                           |     External Net     |
-                           | (Provider Network)   |
-                           +----------+-----------+
-                                      |
-                               +------+------+
-                               |  Neutron L3 |
-                               |   Router    |
-                               +------+------+
-                                      |
-        -----------------------------------------------------------------
-        |                               |                               |
-+-------+--------+              +-------+--------+              +-------+--------+
-|    Tenant A    |              |    Tenant B    |              |    Tenant C    |
-|   VXLAN 1001   |              |   VXLAN 1002   |              |   VXLAN 1003   |
-+-------+--------+              +-------+--------+              +-------+--------+
-        |                               |                               |
-   +----+----+                     +----+----+                     +----+----+
-   |  VM A1  |                     |  VM B1  |                     |  VM C1  |
-   +---------+                     +---------+                     +---------+
+1. Se connecter à l’interface
 
-          ❌ Pas de communication inter-tenant (Isolation L2 via VXLAN)
+2. Consulter les ressources du projet via le Dashboard
+
+3. Créer ou modifier des réseaux virtuels
+
+4. Déployer des machines virtuelles
+
+5. Gérer les groupes de sécurité
+
+6. Attacher une IP flottante à une instance
+
+7. Tester la connectivité réseau
 ```
-___
+
+---
           
 # 📘 Licence
 
