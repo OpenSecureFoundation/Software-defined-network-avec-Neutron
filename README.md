@@ -41,21 +41,20 @@ sdn-dashboard/
 L’application agit comme une **couche d’orchestration** entre l’interface web et les services OpenStack.
 
 ```
-Utilisateur
+Utilisateur (via Navigateur)
     │
     ▼
-Navigateur Web
+Application Flask (Intermédiaire)
     │
     ▼
-Application Flask (SDN Manager)
-    │
+OpenStack API 
     ├── Keystone  → Authentification
     ├── Neutron   → Gestion des réseaux SDN
     ├── Nova      → Gestion des machines virtuelles
     └── Glance    → Gestion des images VM
 ```
 
-Le backend Flask traduit les actions réalisées dans l’interface graphique en **appels API vers les services OpenStack**.
+Le backend OpenStack traduit les actions réalisées dans l’interface graphique Flask en **appels API vers les services OpenStack**.
 
 L’infrastructure réseau repose sur **OpenStack Neutron**, qui permet de créer des **réseaux virtuels isolés entre différents tenants** grâce à la technologie **VXLAN**.
 
