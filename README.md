@@ -1,5 +1,7 @@
 # Software defined network avec Neutron
-Projet de Software defined network avec OpenStack Neutron
+Application web de gestion d’infrastructure **Software Defined Networking (SDN)** basée sur **OpenStack Neutron**, permettant l’administration d’environnements **multi-tenant isolés via VXLAN** à travers une interface graphique simplifiée.
+
+Le projet fournit un **tableau de bord web** permettant de gérer les ressources réseau et compute d’OpenStack sans utiliser directement la ligne de commande.
 
 # Objectifs:
 
@@ -171,7 +173,6 @@ Le projet inclut plusieurs scripts permettant de simplifier la gestion de l’en
 | ------------------- | ------------------------------------------------ |
 | `setup_admin.sh`    | Initialise l’infrastructure OpenStack            |
 | `cleanup.sh`        | Supprime les ressources créées par l’application |
-| `create_user.sh`    | Crée un utilisateur OpenStack via CLI            |
 | `test_isolation.sh` | Vérifie l’isolation réseau entre tenants         |
 
 
