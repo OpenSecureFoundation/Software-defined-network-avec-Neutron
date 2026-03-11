@@ -7,14 +7,12 @@
   <p class="text-muted mb-0">
     {{ instances|length }} instance(s) — projet <strong>{{ session.project }}</strong>
     {% if session.role == 'admin' %}
-    <span class="badge bg-warning bg-opacity-20 text-warning ms-2"
-          style="font-size:.72rem">
+    <span class="badge bg-warning bg-opacity-20 text-warning ms-2" style="font-size:.72rem">
       <i class="bi bi-eye me-1"></i>Vue globale tous projets
     </span>
     {% endif %}
   </p>
-  <button class="btn btn-success" data-bs-toggle="modal"
-          data-bs-target="#modalCreateVM">
+  <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCreateVM">
     <i class="bi bi-plus-lg me-2"></i>Nouvelle instance
   </button>
 </div>
@@ -23,8 +21,7 @@
 <div class="card text-center py-5">
   <i class="bi bi-pc-display fs-1 text-muted mb-3 d-block"></i>
   <p class="text-muted">Aucune instance trouvée.</p>
-  <button class="btn btn-success mx-auto"
-          data-bs-toggle="modal" data-bs-target="#modalCreateVM">
+  <button class="btn btn-success mx-auto" data-bs-toggle="modal" data-bs-target="#modalCreateVM">
     <i class="bi bi-plus-lg me-2"></i>Créer une VM
   </button>
 </div>
@@ -35,9 +32,7 @@
       <thead>
         <tr>
           <th>Nom</th>
-          {% if session.role == 'admin' %}
-          <th>Projet</th>
-          {% endif %}
+          {% if session.role == 'admin' %}<th>Projet</th>{% endif %}
           <th>Statut</th>
           <th>Réseau / IP</th>
           <th>Image</th>
@@ -55,17 +50,14 @@
 
         {% if session.role == 'admin' %}
         <td>
-          <span class="badge"
-                style="background:#1e293b;color:#94a3b8;
-                       border:1px solid #334155;font-size:.72rem">
-            <i class="bi bi-building me-1"></i>
-            {{ inst.project_id[:8] if inst.project_id else '—' }}…
+          <span class="badge" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;font-size:.72rem">
+            <i class="bi bi-building me-1"></i>{{ inst.project_id[:8] if inst.project_id else '—' }}…
           </span>
         </td>
         {% endif %}
 
         <td>
-          <span class="badge badge-{{ inst.status|lower }} px-2 py-1">
+          <span class="badge badge-{{ inst.status|lower }} px-2 py-1" id="status-{{ inst.id }}">
             {{ inst.status }}
           </span>
         </td>
@@ -83,61 +75,45 @@
           {% endfor %}
         </td>
 
-        <td>
-          <small class="text-muted">
-            {{ inst.image.id[:16] if inst.image else 'N/A' }}…
-          </small>
-        </td>
-
-        <td>
-          <small class="text-muted">
-            {{ inst.flavor.id[:16] if inst.flavor else 'N/A' }}…
-          </small>
-        </td>
+        <td><small class="text-muted">{{ inst.image.id[:16] if inst.image else 'N/A' }}…</small></td>
+        <td><small class="text-muted">{{ inst.flavor.id[:16] if inst.flavor else 'N/A' }}…</small></td>
 
         <td class="text-end">
           <div class="btn-group btn-group-sm">
             {% if inst.status == 'SHUTOFF' %}
-            <button class="btn btn-outline-success"
-                    onclick="vmAction('{{ inst.id }}', 'start')"
-                    title="Démarrer">
+            <button class="btn btn-outline-success" onclick="vmAction('{{ inst.id }}', 'start')" title="Démarrer">
               <i class="bi bi-play-fill"></i>
             </button>
             {% else %}
-            <button class="btn btn-outline-warning"
-                    onclick="vmAction('{{ inst.id }}', 'stop')"
-                    title="Arrêter">
+            <button class="btn btn-outline-warning" onclick="vmAction('{{ inst.id }}', 'stop')" title="Arrêter">
               <i class="bi bi-stop-fill"></i>
             </button>
             {% endif %}
 
-            <button class="btn btn-outline-info"
-                    onclick="vmAction('{{ inst.id }}', 'reboot')"
-                    title="Redémarrer">
+            <button class="btn btn-outline-info" onclick="vmAction('{{ inst.id }}', 'reboot')" title="Redémarrer">
               <i class="bi bi-arrow-clockwise"></i>
             </button>
 
-            <button class="btn btn-outline-primary"
-                    onclick="showEditVM('{{ inst.id }}', '{{ inst.name }}')"
-                    title="Modifier">
+            <button class="btn btn-outline-secondary"
+                    onclick="openConsole('{{ inst.id }}', '{{ inst.name }}')"
+                    title="Console"
+                    {% if inst.status != 'ACTIVE' %}disabled{% endif %}>
+              <i class="bi bi-terminal"></i>
+            </button>
+
+            <button class="btn btn-outline-primary" onclick="showEditVM('{{ inst.id }}', '{{ inst.name }}')" title="Modifier">
               <i class="bi bi-pencil"></i>
             </button>
 
-            <button class="btn btn-outline-secondary"
-                    onclick="showAttachNetwork('{{ inst.id }}')"
-                    title="Attacher réseau">
+            <button class="btn btn-outline-secondary" onclick="showAttachNetwork('{{ inst.id }}')" title="Attacher réseau">
               <i class="bi bi-hdd-network"></i>
             </button>
 
-            <button class="btn btn-outline-secondary"
-                    onclick="vmAction('{{ inst.id }}', 'attach_floating_ip')"
-                    title="IP flottante">
+            <button class="btn btn-outline-secondary" onclick="vmAction('{{ inst.id }}', 'attach_floating_ip')" title="IP flottante">
               <i class="bi bi-globe"></i>
             </button>
 
-            <button class="btn btn-outline-danger"
-                    onclick="vmAction('{{ inst.id }}', 'delete')"
-                    title="Supprimer">
+            <button class="btn btn-outline-danger" onclick="vmAction('{{ inst.id }}', 'delete')" title="Supprimer">
               <i class="bi bi-trash"></i>
             </button>
           </div>
@@ -150,16 +126,14 @@
 </div>
 {% endif %}
 
-<!-- ── Modal Créer VM ─────────────────────────────────────── -->
+
+<!-- ── Modal Créer VM ──────────────────────────────────────── -->
 <div class="modal fade" id="modalCreateVM" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="bi bi-plus-circle me-2 text-success"></i>Déployer une instance
-        </h5>
-        <button type="button" class="btn-close btn-close-white"
-                data-bs-dismiss="modal"></button>
+        <h5 class="modal-title"><i class="bi bi-plus-circle me-2 text-success"></i>Déployer une instance</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div class="row g-3">
@@ -168,11 +142,9 @@
           <div class="col-12">
             <label class="form-label">
               Créer dans le projet
-              <span class="badge bg-warning bg-opacity-20 text-warning ms-1"
-                    style="font-size:.68rem">Admin</span>
+              <span class="badge bg-warning bg-opacity-20 text-warning ms-1" style="font-size:.68rem">Admin</span>
             </label>
-            <select id="vm-target-project" class="form-select"
-                    onchange="loadProjectNetworks()">
+            <select id="vm-target-project" class="form-select" onchange="loadProjectNetworks()">
               <option value="">— Projet courant (admin) —</option>
             </select>
           </div>
@@ -180,8 +152,7 @@
 
           <div class="col-md-6">
             <label class="form-label">Nom de l'instance *</label>
-            <input type="text" id="vm-name" class="form-control"
-                   placeholder="vm-alice-1"/>
+            <input type="text" id="vm-name" class="form-control" placeholder="vm-alice-1"/>
           </div>
 
           <div class="col-md-6">
@@ -197,9 +168,7 @@
             <label class="form-label">Flavor *</label>
             <select id="vm-flavor" class="form-select">
               {% for f in flavors %}
-              <option value="{{ f.id }}">
-                {{ f.name }} ({{ f.vcpus }}vCPU / {{ f.ram }}MB)
-              </option>
+              <option value="{{ f.id }}">{{ f.name }} ({{ f.vcpus }}vCPU / {{ f.ram }}MB)</option>
               {% endfor %}
             </select>
           </div>
@@ -227,8 +196,7 @@
             <label class="form-label">Groupes de sécurité</label>
             <select id="vm-sg" class="form-select" multiple>
               {% for sg in security_groups %}
-              <option value="{{ sg.name }}"
-                {% if sg.name == 'default' %}selected{% endif %}>
+              <option value="{{ sg.name }}" {% if sg.name == 'default' %}selected{% endif %}>
                 {{ sg.name }}
               </option>
               {% endfor %}
@@ -237,20 +205,15 @@
           </div>
 
           <div class="col-12">
-            <label class="form-label">
-              User Data
-              <span class="text-muted small">(cloud-init, optionnel)</span>
-            </label>
-            <textarea id="vm-userdata" class="form-control font-monospace"
-                      rows="3"
+            <label class="form-label">User Data <span class="text-muted small">(cloud-init, optionnel)</span></label>
+            <textarea id="vm-userdata" class="form-control font-monospace" rows="3"
                       placeholder="#!/bin/bash&#10;apt-get update"></textarea>
           </div>
 
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary"
-                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
         <button type="button" class="btn btn-success" onclick="createInstance()">
           <i class="bi bi-play-fill me-1"></i>Déployer
         </button>
@@ -259,25 +222,21 @@
   </div>
 </div>
 
-<!-- ── Modal Modifier VM ──────────────────────────────────── -->
+
+<!-- ── Modal Modifier VM ───────────────────────────────────── -->
 <div class="modal fade" id="modalEditVM" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="bi bi-pencil me-2 text-primary"></i>Modifier l'instance
-        </h5>
-        <button type="button" class="btn-close btn-close-white"
-                data-bs-dismiss="modal"></button>
+        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>Modifier l'instance</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="edit-vm-id"/>
-
         <div class="mb-3">
           <label class="form-label">Nom de l'instance</label>
           <input type="text" id="edit-vm-name" class="form-control"/>
         </div>
-
         <div class="mb-3">
           <label class="form-label">Groupes de sécurité</label>
           <select id="edit-vm-sg" class="form-select" multiple>
@@ -287,16 +246,13 @@
           </select>
           <small class="text-muted">Ctrl+clic pour sélection multiple</small>
         </div>
-
         <div class="mb-3">
           <label class="form-label">Description</label>
-          <input type="text" id="edit-vm-desc" class="form-control"
-                 placeholder="Description optionnelle"/>
+          <input type="text" id="edit-vm-desc" class="form-control" placeholder="Description optionnelle"/>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary"
-                data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
         <button type="button" class="btn btn-primary" onclick="saveVM()">
           <i class="bi bi-check-lg me-1"></i>Enregistrer
         </button>
@@ -305,16 +261,14 @@
   </div>
 </div>
 
-<!-- ── Modal Attacher réseau ──────────────────────────────── -->
+
+<!-- ── Modal Attacher réseau ───────────────────────────────── -->
 <div class="modal fade" id="modalAttachNet" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="bi bi-hdd-network me-2 text-primary"></i>Attacher un réseau
-        </h5>
-        <button type="button" class="btn-close btn-close-white"
-                data-bs-dismiss="modal"></button>
+        <h5 class="modal-title"><i class="bi bi-hdd-network me-2 text-primary"></i>Attacher un réseau</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="attach-vm-id"/>
@@ -326,10 +280,8 @@
         </select>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary"
-                data-bs-dismiss="modal">Annuler</button>
-        <button type="button" class="btn btn-primary"
-                onclick="doAttachNetwork()">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" onclick="doAttachNetwork()">
           <i class="bi bi-check-lg me-1"></i>Attacher
         </button>
       </div>
@@ -337,10 +289,58 @@
   </div>
 </div>
 
+
+<!-- ── Modal Console noVNC ─────────────────────────────────── -->
+<div class="modal fade" id="modalConsole" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content" style="background:#0d1117;">
+      <div class="modal-header" style="border-color:#21262d;">
+        <h5 class="modal-title text-white">
+          <i class="bi bi-terminal me-2 text-info"></i>Console —
+          <span id="console-vm-name"></span>
+        </h5>
+        <button class="btn btn-sm btn-outline-secondary me-2 ms-auto"
+                onclick="openConsoleNewTab()" title="Ouvrir dans un nouvel onglet">
+          <i class="bi bi-box-arrow-up-right"></i>
+        </button>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal" onclick="closeConsole()"></button>
+      </div>
+      <div class="modal-body p-0" style="height:600px;">
+
+        <div id="console-loading"
+             class="d-flex flex-column align-items-center justify-content-center h-100">
+          <div class="spinner-border text-info mb-3"></div>
+          <p class="text-muted">Connexion à la console…</p>
+        </div>
+
+        <div id="console-error"
+             class="d-flex flex-column align-items-center justify-content-center h-100 d-none">
+          <i class="bi bi-exclamation-triangle fs-1 text-warning mb-3"></i>
+          <p class="text-muted" id="console-error-msg">Impossible d'ouvrir la console.</p>
+          <small class="text-muted">
+            Vérifiez que noVNC est actif :
+            <code>sudo systemctl start devstack@n-novnc.service</code>
+          </small>
+        </div>
+
+        <iframe id="console-iframe"
+                class="w-100 h-100 d-none"
+                style="border:none;"
+                allow="clipboard-read; clipboard-write"
+                allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
+
 
 {% block scripts %}
 <script>
+
+let currentConsoleUrl = null;
 
 // ── Chargement des projets (admin) ───────────────────────────
 async function loadProjects() {
@@ -349,42 +349,31 @@ async function loadProjects() {
   try {
     const projects = await apiFetch('/api/projects');
     projects.forEach(p => {
-      const opt       = document.createElement('option');
-      opt.value       = p.name;
+      const opt = document.createElement('option');
+      opt.value = p.name;
       opt.textContent = p.name;
       sel.appendChild(opt);
     });
-  } catch(e) {
-    console.error('Erreur chargement projets :', e);
-  }
+  } catch(e) { console.error('Erreur projets :', e); }
 }
 
-// ── Chargement des réseaux selon le projet sélectionné ───────
+// ── Chargement réseaux selon projet ─────────────────────────
 async function loadProjectNetworks() {
   const project = document.getElementById('vm-target-project')?.value;
   const sel     = document.getElementById('vm-network');
-
   if (!project) {
-    // Revenir aux réseaux du projet admin
     sel.innerHTML = '';
     {% for net in networks %}
-    sel.innerHTML +=
-      `<option value="{{ net.id }}">{{ net.name }}</option>`;
+    sel.innerHTML += `<option value="{{ net.id }}">{{ net.name }}</option>`;
     {% endfor %}
     return;
   }
-
   sel.innerHTML = '<option>Chargement...</option>';
   try {
     const nets = await apiFetch(`/api/networks/${project}`);
-    if (nets.length) {
-      sel.innerHTML = nets
-        .map(n => `<option value="${n.id}">${n.name}</option>`)
-        .join('');
-    } else {
-      sel.innerHTML =
-        '<option value="">Aucun réseau dans ce projet</option>';
-    }
+    sel.innerHTML = nets.length
+      ? nets.map(n => `<option value="${n.id}">${n.name}</option>`).join('')
+      : '<option value="">Aucun réseau dans ce projet</option>';
   } catch(e) {
     sel.innerHTML = '<option value="">Erreur chargement</option>';
   }
@@ -392,35 +381,28 @@ async function loadProjectNetworks() {
 
 // ── Créer une instance ───────────────────────────────────────
 async function createInstance() {
-  const name           = document.getElementById('vm-name').value.trim();
-  const image_id       = document.getElementById('vm-image').value;
-  const flavor_id      = document.getElementById('vm-flavor').value;
-  const network_id     = document.getElementById('vm-network').value;
-  const key_name       = document.getElementById('vm-keypair').value || null;
-  const user_data      = document.getElementById('vm-userdata').value;
-  const target_project =
-    document.getElementById('vm-target-project')?.value || '';
-  const sg_sel         = document.getElementById('vm-sg');
-  const security_groups = [...sg_sel.selectedOptions].map(o => o.value);
+  const name            = document.getElementById('vm-name').value.trim();
+  const image_id        = document.getElementById('vm-image').value;
+  const flavor_id       = document.getElementById('vm-flavor').value;
+  const network_id      = document.getElementById('vm-network').value;
+  const key_name        = document.getElementById('vm-keypair').value || null;
+  const user_data       = document.getElementById('vm-userdata').value;
+  const target_project  = document.getElementById('vm-target-project')?.value || '';
+  const security_groups = [...document.getElementById('vm-sg').selectedOptions].map(o => o.value);
 
   if (!name)       return showToast('Nom de l\'instance requis.', 'warning');
   if (!network_id) return showToast('Réseau requis.', 'warning');
 
   const res = await apiFetch('/instances/create', 'POST', {
-    name,
-    image_id,
-    flavor_id,
-    network_id,
-    key_name,
-    security_groups,
-    user_data,
-    target_project : target_project || null,
+    name, image_id, flavor_id, network_id, key_name,
+    security_groups, user_data,
+    target_project: target_project || null,
   });
 
   if (res.success) {
     showToast(
       target_project
-        ? `Instance créée dans le projet <strong>${target_project}</strong>`
+        ? `Instance créée dans <strong>${target_project}</strong>`
         : 'Instance en cours de création…',
       'success'
     );
@@ -430,30 +412,25 @@ async function createInstance() {
   }
 }
 
-// ── Afficher la modale de modification ───────────────────────
+// ── Modifier une instance ────────────────────────────────────
 function showEditVM(id, name) {
   document.getElementById('edit-vm-id').value   = id;
   document.getElementById('edit-vm-name').value = name;
   document.getElementById('edit-vm-desc').value = '';
-  // Désélectionner tous les SGs
-  [...document.getElementById('edit-vm-sg').options]
-    .forEach(o => o.selected = false);
+  [...document.getElementById('edit-vm-sg').options].forEach(o => o.selected = false);
   new bootstrap.Modal(document.getElementById('modalEditVM')).show();
 }
 
-// ── Sauvegarder les modifications d'une instance ─────────────
 async function saveVM() {
   const id              = document.getElementById('edit-vm-id').value;
   const name            = document.getElementById('edit-vm-name').value.trim();
   const desc            = document.getElementById('edit-vm-desc').value.trim();
-  const sg_sel          = document.getElementById('edit-vm-sg');
-  const security_groups = [...sg_sel.selectedOptions].map(o => o.value);
+  const security_groups = [...document.getElementById('edit-vm-sg').selectedOptions].map(o => o.value);
 
   const payload = {};
-  if (name) payload.name              = name;
-  if (desc) payload.description       = desc;
-  if (security_groups.length)
-        payload.security_groups       = security_groups;
+  if (name)                   payload.name            = name;
+  if (desc)                   payload.description     = desc;
+  if (security_groups.length) payload.security_groups = security_groups;
 
   const res = await apiFetch(`/instances/${id}/update`, 'PUT', payload);
   if (res.success) {
@@ -464,19 +441,14 @@ async function saveVM() {
   }
 }
 
-// ── Actions sur une instance ─────────────────────────────────
+// ── Actions VM ───────────────────────────────────────────────
 async function vmAction(id, action) {
-  if (action === 'delete' &&
-      !confirm('Supprimer cette instance définitivement ?')) return;
+  if (action === 'delete' && !confirm('Supprimer cette instance définitivement ?')) return;
 
   const res = await apiFetch(`/instances/${id}/action`, 'POST', { action });
-
   if (res.success) {
     if (action === 'attach_floating_ip') {
-      showToast(
-        `IP flottante assignée : <strong>${res.floating_ip}</strong>`,
-        'success'
-      );
+      showToast(`IP flottante assignée : <strong>${res.floating_ip}</strong>`, 'success');
     } else {
       showToast('Action effectuée avec succès.', 'success');
     }
@@ -486,28 +458,66 @@ async function vmAction(id, action) {
   }
 }
 
-// ── Afficher la modale d'attachement réseau ──────────────────
+// ── Attacher réseau ──────────────────────────────────────────
 function showAttachNetwork(vmId) {
   document.getElementById('attach-vm-id').value = vmId;
   new bootstrap.Modal(document.getElementById('modalAttachNet')).show();
 }
 
-// ── Attacher un réseau à une instance ───────────────────────
 async function doAttachNetwork() {
   const vmId  = document.getElementById('attach-vm-id').value;
   const netId = document.getElementById('attach-network').value;
-
-  const res = await apiFetch(
-    `/instances/${vmId}/attach_network`, 'POST', { network_id: netId }
-  );
-
+  const res   = await apiFetch(`/instances/${vmId}/attach_network`, 'POST', { network_id: netId });
   if (res.success) {
-    showToast('Interface réseau attachée avec succès.', 'success');
+    showToast('Interface réseau attachée.', 'success');
     location.reload();
   } else {
     showToast(res.error, 'danger');
   }
 }
+
+// ── Console noVNC ────────────────────────────────────────────
+async function openConsole(vmId, vmName) {
+  document.getElementById('console-vm-name').textContent = vmName;
+  document.getElementById('console-loading').classList.remove('d-none');
+  document.getElementById('console-error').classList.add('d-none');
+  document.getElementById('console-iframe').classList.add('d-none');
+  document.getElementById('console-iframe').src = '';
+  currentConsoleUrl = null;
+
+  new bootstrap.Modal(document.getElementById('modalConsole')).show();
+
+  try {
+    const res = await apiFetch(`/instances/${vmId}/console`);
+    if (res.url) {
+      currentConsoleUrl = res.url;
+      const iframe = document.getElementById('console-iframe');
+      iframe.src   = res.url;
+      iframe.classList.remove('d-none');
+      document.getElementById('console-loading').classList.add('d-none');
+    } else {
+      throw new Error(res.error || 'URL console non disponible');
+    }
+  } catch(e) {
+    document.getElementById('console-loading').classList.add('d-none');
+    document.getElementById('console-error').classList.remove('d-none');
+    document.getElementById('console-error-msg').textContent = e.message;
+  }
+}
+
+function openConsoleNewTab() {
+  if (currentConsoleUrl) window.open(currentConsoleUrl, '_blank', 'width=1280,height=800');
+}
+
+function closeConsole() {
+  document.getElementById('console-iframe').src = '';
+  currentConsoleUrl = null;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const m = document.getElementById('modalConsole');
+  if (m) m.addEventListener('hidden.bs.modal', closeConsole);
+});
 
 // ── Init ─────────────────────────────────────────────────────
 loadProjects();
