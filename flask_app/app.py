@@ -846,6 +846,22 @@ def api_instances_status():
         for s in conn.compute.servers(details=True)
     ])
 
+@app.route('/instances/<instance_id>/console')
+@login_required
+def instance_console(instance_id):
+    conn = get_connection()
+    try:
+        result = conn.compute.create_console(instance_id, console_type='novnc')
+        url = result.get('url') or result.get('console', {}).get('url')
+
+        if url:
+            # Remplacer l'IP interne DevStack par l'IP accessible depuis le navigateur
+            url = url.replace('10.0.2.15', '192.168.56.111')
+            return jsonify({'url': url})
+
+        return jsonify({'error': 'URL console non disponible'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 # ─────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
