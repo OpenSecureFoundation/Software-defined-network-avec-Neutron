@@ -5,7 +5,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <p class="text-muted mb-0">
-    {{ instances|length }} instance(s) — projet <strong>{{ session.project }}</strong>
+    {{ instances|length }} instance(s) - projet <strong>{{ session.project }}</strong>
     {% if session.role == 'admin' %}
     <span class="badge bg-warning bg-opacity-20 text-warning ms-2" style="font-size:.72rem">
       <i class="bi bi-eye me-1"></i>Vue globale tous projets
@@ -51,7 +51,7 @@
         {% if session.role == 'admin' %}
         <td>
           <span class="badge" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;font-size:.72rem">
-            <i class="bi bi-building me-1"></i>{{ inst.project_id[:8] if inst.project_id else '—' }}…
+            <i class="bi bi-building me-1"></i>{{ inst.project_id[:8] if inst.project_id else '-' }}…
           </span>
         </td>
         {% endif %}
@@ -71,7 +71,7 @@
               </div>
             {% endfor %}
           {% else %}
-            <span class="text-muted small">—</span>
+            <span class="text-muted small">-</span>
           {% endfor %}
         </td>
 
@@ -145,7 +145,7 @@
               <span class="badge bg-warning bg-opacity-20 text-warning ms-1" style="font-size:.68rem">Admin</span>
             </label>
             <select id="vm-target-project" class="form-select" onchange="loadProjectNetworks()">
-              <option value="">— Projet courant (admin) —</option>
+              <option value=""> Projet courant (admin) </option>
             </select>
           </div>
           {% endif %}
@@ -185,7 +185,7 @@
           <div class="col-md-6">
             <label class="form-label">Clé SSH</label>
             <select id="vm-keypair" class="form-select">
-              <option value="">— Aucune —</option>
+              <option value=""> Aucune </option>
               {% for kp in keypairs %}
               <option value="{{ kp.name }}">{{ kp.name }}</option>
               {% endfor %}
@@ -296,7 +296,7 @@
     <div class="modal-content" style="background:#0d1117;">
       <div class="modal-header" style="border-color:#21262d;">
         <h5 class="modal-title text-white">
-          <i class="bi bi-terminal me-2 text-info"></i>Console —
+          <i class="bi bi-terminal me-2 text-info"></i>Console -
           <span id="console-vm-name"></span>
         </h5>
         <button class="btn btn-sm btn-outline-secondary me-2 ms-auto"

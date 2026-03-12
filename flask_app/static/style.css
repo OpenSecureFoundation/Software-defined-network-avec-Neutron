@@ -1,0 +1,246 @@
+
+:root {
+    --sidebar-w:  240px;
+    --dark-bg:    #0f172a;
+    --sidebar-bg: #1e293b;
+    --card-bg:    #1e293b;
+    --border:     #334155;
+    --text-main:  #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-dim:   #64748b;
+  }
+
+  body {
+    background: var(--dark-bg);
+    color: var(--text-main);
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--sidebar-bg);
+    display: flex; flex-direction: column;
+    z-index: 1000;
+    border-right: 1px solid var(--border);
+  }
+  .sidebar-brand {
+    padding: 1.25rem 1rem;
+    font-weight: 700; font-size: 1.05rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: .6rem;
+    color: #f1f5f9;
+  }
+  .badge-ver {
+    font-size: .62rem; background: #0d6efd;
+    padding: .2rem .45rem; border-radius: 6px; font-weight: 500;
+    color: #fff;
+  }
+  .nav-section {
+    color: #60a5fa; 
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1.5rem 1.5rem 0.5rem; 
+    opacity: 0.8;
+  }
+  .sidebar-nav .nav-link {
+    color: #cbd5e1; padding: .55rem 1rem;
+    border-radius: 8px; margin: .1rem .5rem;
+    display: flex; align-items: center; gap: .6rem;
+    font-size: .88rem; transition: background .15s;
+  }
+  .sidebar-nav .nav-link:hover  { background: #2d3f55; color: #f1f5f9; }
+  .sidebar-nav .nav-link.active { background: #334155; color: #f1f5f9; font-weight: 600; }
+  .sidebar-footer {
+    margin-top: auto; padding: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: .78rem; color: var(--text-muted);
+  }
+
+  /* ── Main ── */
+  #main { margin-left: var(--sidebar-w); min-height: 100vh; }
+
+  .topbar {
+    background: var(--sidebar-bg);
+    border-bottom: 1px solid var(--border);
+    padding: .75rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 900;
+  }
+  .topbar-title { font-size: 1.1rem; font-weight: 600; color: #f1f5f9; }
+
+  .content-area { padding: 1.5rem 2rem; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-main);
+    overflow: hidden !important;
+  }
+  .card-header {
+    color: #f1f5f9;
+    background: #263347;
+    border-color: var(--border);
+    border-radius: 12px 12px 0 0 !important;
+  }
+
+  /* ── Stat cards ── */
+  .stat-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.25rem;
+    display: flex; align-items: center; gap: 1rem;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+  .stat-icon {
+    width: 52px; height: 52px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+  }
+  .stat-value { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+  .stat-label { font-size: .78rem; color: var(--text-muted); margin-top: .25rem; }
+
+  /* ── Tables ── */
+
+
+    .table th {
+        background-color: #263347 !important;
+        color: #94a3b8 !important;
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        padding: 12px !important;
+    }
+
+    .table tbody td {
+        background-color: #f8fafc !important; 
+        color: #1e293b !important;          
+        border-bottom: 1px solid #e2e8f0 !important;
+        padding: 12px !important;
+    }
+
+    .table tbody td .fw-bold {
+        color: #0f172a !important;
+    }
+
+    .table tbody td .text-muted {
+        color: #64748b !important;
+    }
+
+    /* Effet au survol */
+    .table-hover tbody tr:hover td {
+        background-color: #f1f5f9 !important;
+    }
+
+
+  /* ── Badges statut VM ── */
+  .badge-active  { background: #064e3b; color: #6ee7b7; }
+  .badge-shutoff { background: #7f1d1d; color: #fca5a5; }
+  .badge-build   { background: #78350f; color: #fde68a; }
+  .badge-error   { background: #450a0a; color: #f87171; }
+  .badge-unknown { background: #1e293b; color: #94a3b8; }
+
+  /* ── Modals ── */
+  .modal-content {
+    background: #1e293b;
+    border: 1px solid var(--border);
+    color: #f1f5f9;
+  }
+  .modal-header { border-color: var(--border); }
+  .modal-footer { border-color: var(--border); }
+  .modal-title  { color: #f1f5f9; font-weight: 600; }
+
+  /* ── Forms ── */
+  .form-control, .form-select {
+    background: #0f172a;
+    border-color: var(--border);
+    color: #f1f5f9;
+    border-radius: 8px;
+  }
+  .form-control::placeholder { color: #475569; }
+  .form-control:focus, .form-select:focus {
+    background: #0f172a;
+    border-color: #3b82f6;
+    color: #f1f5f9;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.2);
+  }
+  .form-select option { background: #1e293b; color: #f1f5f9; }
+  .form-label  { font-size: .82rem; color: #94a3b8; margin-bottom: .3rem; }
+  .form-text   { color: #64748b !important; font-size: .75rem; }
+  .input-group-text {
+    background: #0f172a; border-color: var(--border); color: #64748b;
+  }
+
+  /* ── Alerts ── */
+  .alert { border-radius: 10px; border: none; font-size: .88rem; }
+  .alert-success { background: #064e3b; color: #6ee7b7; }
+  .alert-danger  { background: #450a0a; color: #fca5a5; }
+  .alert-warning { background: #451a03; color: #fde68a; }
+  .alert-info    { background: #0c4a6e; color: #7dd3fc; }
+
+  /* ── Topology ── */
+  #topology-canvas {
+    width: 100%; height: 480px;
+    border-radius: 10px;
+    background: #0f172a;
+    border: 1px solid var(--border);
+  }
+
+  /* ── Misc ── */
+  code { color: #60a5fa; background: #0f172a; padding: .1rem .4rem; border-radius: 4px; }
+  small, .small { color: #94a3b8; }
+  .text-muted { color: #94a3b8 !important; }
+  .fw-bold, .fw-600 { color: #f1f5f9; }
+  hr { border-color: var(--border); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--dark-bg); }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+/* --- BOUTONS DE NAVIGATION VIS.JS --- */
+
+/* On force la position des icônes pour qu'elles soient centrées */
+.vis-network .vis-navigation .vis-button {
+    background-color: #1e293b !important; /* Même fond que tes cartes pour l'unité */
+    border: 2px solid #60a5fa !important; /* Bordure bleue plus épaisse */
+    color: #60a5fa !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* On masque l'image par défaut de Vis.js qui est souvent sombre */
+.vis-network .vis-navigation .vis-button:after {
+    display: none !important;
+}
+
+/* On ré-injecte nos propres flèches et symboles en texte blanc/bleu très clair */
+.vis-button.vis-up:before    { content: "▲"; }
+.vis-button.vis-down:before  { content: "▼"; }
+.vis-button.vis-left:before  { content: "◀"; }
+.vis-button.vis-right:before { content: "▶"; }
+.vis-button.vis-zoomIn:before { content: "＋"; font-weight: bold; }
+.vis-button.vis-zoomOut:before { content: "－"; font-weight: bold; }
+.vis-button.vis-zoomExtents:before { content: "⛶"; font-size: 1.2rem; }
+
+.vis-button:before {
+    color: #f1f5f9 !important; /* Texte quasi blanc */
+    font-size: 14px;
+}
+
+/* Effet au survol : On inverse les couleurs */
+.vis-button:hover {
+    background-color: #60a5fa !important;
+    transform: scale(1.1);
+}
+
+.vis-button:hover:before {
+    color: #0f172a !important; /* Texte sombre sur fond bleu vif */
+}

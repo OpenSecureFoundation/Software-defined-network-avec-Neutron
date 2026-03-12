@@ -5,7 +5,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <p class="text-muted mb-0">
-    {{ networks|length }} réseau(x) — projet <strong>{{ session.project }}</strong>
+    {{ networks|length }} réseau(x) - projet <strong>{{ session.project }}</strong>
   </p>
   <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreateNet">
     <i class="bi bi-plus-lg me-2"></i>Nouveau réseau
@@ -31,7 +31,7 @@
       <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
           <h6 class="fw-bold mb-1">{{ net.name }}</h6>
-          <small class="text-muted font-monospace">{{ net.id[:12] }}…</small>
+          <small class="text-muted font-monospace">{{ net.id }}</small>
         </div>
         <span class="badge {{ 'bg-success' if net.is_admin_state_up else 'bg-danger' }}">
           {{ 'UP' if net.is_admin_state_up else 'DOWN' }}
@@ -101,7 +101,7 @@
           </label>
           <select id="net-target-project" class="form-select"
                   onchange="onProjectChange()">
-            <option value="">— Projet courant (admin) —</option>
+            <option value=""> Projet courant (admin) </option>
           </select>
         </div>
         {% endif %}
@@ -171,8 +171,8 @@
         <div class="mb-3">
           <label class="form-label">État administratif</label>
           <select id="edit-net-state" class="form-select">
-            <option value="true">UP — Actif</option>
-            <option value="false">DOWN — Désactivé</option>
+            <option value="true">UP - Actif</option>
+            <option value="false">DOWN - Désactivé</option>
           </select>
         </div>
       </div>

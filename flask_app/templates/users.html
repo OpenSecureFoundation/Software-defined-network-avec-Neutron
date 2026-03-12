@@ -33,7 +33,7 @@
               {{ user.name[0]|upper }}
             </div>
             <div>
-              <div class="fw-bold text-primary">{{ user.name }}</div>
+              <div class="fw-bold text-body">{{ user.name }}</div>
               <small class="text-muted font-monospace">{{ user.email }}</small>
             </div>
           </div>
@@ -53,7 +53,7 @@
               <i class="bi bi-building me-1"></i>{{ user_project.name }}
             </span>
           {% else %}
-            <span class="text-muted small">—</span>
+            <span class="text-muted small">-</span>
           {% endif %}
         </td>
         <td>
@@ -67,7 +67,7 @@
             {% endfor %}
           </select>
           {% else %}
-            <span class="text-muted small">—</span>
+            <span class="text-muted small">-</span>
           {% endif %}
         </td>
         <td class="text-end">
@@ -139,8 +139,8 @@
           <label class="form-label">Rôle</label>
           <select id="new-role" class="form-select"
                   onchange="updateRoleInfo()">
-            <option value="member">member — accès limité</option>
-            <option value="admin">admin — accès total</option>
+            <option value="member">member - accès limité</option>
+            <option value="admin">admin - accès total</option>
           </select>
         </div>
         <div id="role-info" class="alert alert-info py-2 mb-0"
@@ -245,8 +245,8 @@ async function createUser() {
   });
   if (res.success) {
     showToast(
-      `Utilisateur <strong>${res.username}</strong> créé — ` +
-      `projet : ${res.project} — rôle : ${res.role}`, 'success');
+      `Utilisateur <strong>${res.username}</strong> créé - ` +
+      `projet : ${res.project} - rôle : ${res.role}`, 'success');
     setTimeout(() => location.reload(), 1800);
   } else showToast(res.error, 'danger');
 }
