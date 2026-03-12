@@ -5,7 +5,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <p class="text-muted mb-0">
-    {{ routers|length }} routeur(s) — projet <strong>{{ session.project }}</strong>
+    {{ routers|length }} routeur(s) - projet <strong>{{ session.project }}</strong>
   </p>
   <button class="btn btn-warning" data-bs-toggle="modal"
           data-bs-target="#modalCreateRouter">
@@ -26,6 +26,7 @@
 <div class="card">
   <div class="table-responsive">
     <table class="table table-hover mb-0">
+    <!-- <table class="table table-dark table-hover mb-0"> -->
       <thead>
         <tr>
           <th>Nom</th><th>Statut</th><th>Gateway</th>
@@ -44,16 +45,16 @@
         </td>
         <td>
           {% if router.external_gateway_info %}
-            <span class="badge" style="background:#1e3a5f;color:#60a5fa">
+            <span class="badge" style="background:#1e3a5f; color:#60a5fa; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">
               <i class="bi bi-globe me-1"></i>
-              {{ router.external_gateway_info.get('network_id','')[:16] }}…
+              {{ router.external_gateway_info.get('network_id','') }}
             </span>
           {% else %}
             <span class="text-muted small">Aucune gateway</span>
           {% endif %}
         </td>
         <td>
-          <small class="text-muted font-monospace">{{ router.id[:16] }}…</small>
+          <small class="text-muted font-monospace">{{ router.id }}</small>
         </td>
         <td class="text-end">
           <div class="btn-group btn-group-sm">
@@ -101,7 +102,7 @@
           </label>
           <select id="router-target-project" class="form-select"
                   onchange="loadProjectSubnets()">
-            <option value="">— Projet courant (admin) —</option>
+            <option value=""> Projet courant (admin) </option>
           </select>
         </div>
         {% endif %}
@@ -118,11 +119,11 @@
         <div class="mb-3">
           <label class="form-label">Sous-réseau à attacher</label>
           <select id="router-subnet" class="form-select">
-            <option value="">— Aucun —</option>
+            <option value=""> Aucun </option>
             {% for net in networks %}
               {% for sid in net.subnet_ids %}
                 <option value="{{ sid }}">
-                  {{ net.name }} — {{ sid[:16] }}…
+                  {{ net.name }} - {{ sid }}
                 </option>
               {% endfor %}
             {% endfor %}
@@ -166,19 +167,19 @@
         <div class="mb-3">
           <label class="form-label">État administratif</label>
           <select id="edit-router-state" class="form-select">
-            <option value="true">UP — Actif</option>
-            <option value="false">DOWN — Désactivé</option>
+            <option value="true">UP - Actif</option>
+            <option value="false">DOWN - Désactivé</option>
           </select>
         </div>
         <hr style="border-color:#334155"/>
         <div class="mb-3">
           <label class="form-label">Ajouter un sous-réseau</label>
           <select id="edit-router-add-subnet" class="form-select">
-            <option value="">— Aucun —</option>
+            <option value=""> Aucun </option>
             {% for net in networks %}
               {% for sid in net.subnet_ids %}
                 <option value="{{ sid }}">
-                  {{ net.name }} — {{ sid[:16] }}…
+                  {{ net.name }} - {{ sid }}
                 </option>
               {% endfor %}
             {% endfor %}
@@ -187,11 +188,11 @@
         <div class="mb-3">
           <label class="form-label">Retirer un sous-réseau</label>
           <select id="edit-router-rm-subnet" class="form-select">
-            <option value="">— Aucun —</option>
+            <option value=""> Aucun </option>
             {% for net in networks %}
               {% for sid in net.subnet_ids %}
                 <option value="{{ sid }}">
-                  {{ net.name }} — {{ sid[:16] }}…
+                  {{ net.name }} - {{ sid }}
                 </option>
               {% endfor %}
             {% endfor %}
@@ -228,19 +229,19 @@ async function loadProjects() {
 async function loadProjectSubnets() {
   const project = document.getElementById('router-target-project')?.value;
   const sel     = document.getElementById('router-subnet');
-  sel.innerHTML = '<option value="">— Chargement... —</option>';
+  sel.innerHTML = '<option value="">- Chargement... -</option>';
   if (!project) {
-    sel.innerHTML = '<option value="">— Aucun —</option>';
+    sel.innerHTML = '<option value="">- Aucun -</option>';
     {% for net in networks %}{% for sid in net.subnet_ids %}
-    sel.innerHTML += `<option value="{{ sid }}">{{ net.name }} — {{ sid[:16] }}…</option>`;
+    sel.innerHTML += `<option value="{{ sid }}">{{ net.name }} - {{ sid[:16] }}…</option>`;
     {% endfor %}{% endfor %}
     return;
   }
   try {
     const nets = await apiFetch(`/api/networks/${project}`);
-    sel.innerHTML = '<option value="">— Aucun —</option>';
+    sel.innerHTML = '<option value="">- Aucun -</option>';
     nets.forEach(n => n.subnets.forEach(s => {
-      sel.innerHTML += `<option value="${s.id}">${n.name} — ${s.id.substring(0,16)}…</option>`;
+      sel.innerHTML += `<option value="${s.id}">${n.name} - ${s.id.substring(0,16)}…</option>`;
     }));
   } catch(e) { sel.innerHTML = '<option value="">Erreur</option>'; }
 }
